@@ -1,4 +1,4 @@
-MODE = "mock"
+MODE = "real"
 
 ESP32_HOST = "192.168.4.1"
 ESP32_TIMEOUT = 2.0

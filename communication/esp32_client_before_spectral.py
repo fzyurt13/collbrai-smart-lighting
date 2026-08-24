@@ -207,23 +207,8 @@ class ESP32Client:
         )
 
     def read_spectral(self):
-        import json
-
-        responses = self._send_command(
-            "SPECTRAL",
-            wait_response=0.5
-        )
-
-        for line in responses:
-            if line.startswith("SPECTRAL "):
-                payload = line[len("SPECTRAL "):]
-
-                return json.loads(
-                    payload
-                )
-
-        raise RuntimeError(
-            "No spectral response received from ESP32"
+        raise NotImplementedError(
+            "AS7343 spectral sensor is not integrated yet."
         )
 
     def health(self):

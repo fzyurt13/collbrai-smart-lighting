@@ -32,9 +32,6 @@ from ai.product_presence_manager import ProductPresenceManager
 
 from communication.mock_esp32 import MockESP32
 from communication.esp32_client import ESP32Client
-from sensors.spectral_ratio_estimator import SpectralRatioEstimator
-from control.spectral_feedback_controller import SpectralFeedbackController
-from control.cct_feedback_controller import CCTFeedbackController
 
 from spectral.mock_environment import MockLightingEnvironment
 from sensors.mock_light_sensor import MockLightSensor
@@ -574,20 +571,8 @@ def run_real(target_cct, target_brightness):
     )
 
     esp32 = ESP32Client(
-        port="/dev/ttyACM0",
-        baudrate=115200,
-        timeout=0.3,
-        startup_delay=1.0
-    )
-
-    estimator = SpectralRatioEstimator()
-
-    feedback = CCTFeedbackController(
-        warm_cct=3000.0,
-        cool_cct=6500.0,
-        gain=0.5,
-        tolerance_kelvin=50.0,
-        max_correction=5.0
+        host=ESP32_HOST,
+        timeout=ESP32_TIMEOUT
     )
 
     try:
@@ -596,146 +581,10 @@ def run_real(target_cct, target_brightness):
         print("ESP32 ONLINE")
         print(health)
 
-        # Gecici CCT -> Cool oran donusumu.
-        # Gercek CCT kalibrasyonu sonraki adimda yapilacak.
-        min_cct = 3000.0
-        max_cct = 6500.0
-
-        target_cool_ratio = (
-            float(target_cct) - min_cct
-        ) / (
-            max_cct - min_cct
-        )
-
-        target_cool_ratio = max(
-            0.0,
-            min(1.0, target_cool_ratio)
-        )
-
-        target_cool = target_cool_ratio * 100.0
-        target_warm = 100.0 - target_cool
-
-        command_cool = target_cool
-
-        print(
-            "SPECTRAL TARGET: "
-            "WARM {:.1f}% / COOL {:.1f}%".format(
-                target_warm,
-                target_cool
-            )
-        )
-
-        for iteration in range(1, 6):
-            command_warm = 100.0 - command_cool
-
-            # Toplam parlaklik hedefini uygula
-            warm_output = (
-                command_warm
-                * float(target_brightness)
-                / 100.0
-            )
-
-            cool_output = (
-                command_cool
-                * float(target_brightness)
-                / 100.0
-            )
-
-            print()
-            print("ITERATION", iteration)
-
-            print(
-                "COMMAND: "
-                "WARM {:.2f}% / COOL {:.2f}%".format(
-                    warm_output,
-                    cool_output
-                )
-            )
-
-            esp32.set_warm_cool(
-                warm_output,
-                cool_output
-            )
-
-            time.sleep(1)
-
-            spectral = esp32.read_spectral()
-
-            estimate = estimator.estimate(
-                spectral
-            )
-
-            measured_warm = estimate[
-                "warm_percent"
-            ]
-
-            measured_cool = estimate[
-                "cool_percent"
-            ]
-
-            print(
-                "MEASURED: "
-                "WARM {:.2f}% / COOL {:.2f}%".format(
-                    measured_warm,
-                    measured_cool
-                )
-            )
-
-            measured_cct = estimate[
-                "estimated_cct"
-            ]
-
-            print(
-                "MEASURED CCT: {:.0f} K".format(
-                    measured_cct
-                )
-            )
-
-            print(
-                "CCT ERROR   : {:+.0f} K".format(
-                    float(target_cct)
-                    - measured_cct
-                )
-            )
-
-            print(
-                "R1/R2: {:.4f} / {:.4f}".format(
-                    estimate["ratio_450_640"],
-                    estimate["ratio_475_690"]
-                )
-            )
-
-            result = feedback.calculate(
-                target_cct=target_cct,
-                measured_cct=measured_cct,
-                current_cool=command_cool
-            )
-
-            if result["locked"]:
-                print("STATUS: CCT TARGET LOCKED")
-                break
-
-            print(
-                "CCT CORRECTION: {:+.2f} Cool %".format(
-                    result["correction_cool"]
-                )
-            )
-
-            command_cool = result[
-                "new_cool"
-            ]
-
-    except Exception as exc:
-        print("ESP32 ERROR")
+    except RuntimeError as exc:
+        print("ESP32 OFFLINE")
         print(exc)
 
-    finally:
-        try:
-            esp32.off()
-        except Exception:
-            pass
-
-        esp32.close()
 
 def main():
     args = parse_args()
