@@ -33,8 +33,10 @@ from ai.product_presence_manager import ProductPresenceManager
 from communication.mock_esp32 import MockESP32
 from communication.esp32_client import ESP32Client
 from sensors.spectral_ratio_estimator import SpectralRatioEstimator
+from sensors.brightness_estimator import BrightnessEstimator
 from control.spectral_feedback_controller import SpectralFeedbackController
 from control.cct_feedback_controller import CCTFeedbackController
+from control.brightness_feedback_controller import BrightnessFeedbackController
 
 from spectral.mock_environment import MockLightingEnvironment
 from sensors.mock_light_sensor import MockLightSensor
@@ -580,14 +582,21 @@ def run_real(target_cct, target_brightness):
         startup_delay=1.0
     )
 
-    estimator = SpectralRatioEstimator()
+    spectral_estimator = SpectralRatioEstimator()
+    brightness_estimator = BrightnessEstimator()
 
-    feedback = CCTFeedbackController(
+    cct_feedback = CCTFeedbackController(
         warm_cct=3000.0,
         cool_cct=6500.0,
         gain=0.5,
         tolerance_kelvin=50.0,
         max_correction=5.0
+    )
+
+    brightness_feedback = BrightnessFeedbackController(
+        gain=0.5,
+        tolerance=2.0,
+        max_correction=8.0
     )
 
     try:
@@ -596,8 +605,6 @@ def run_real(target_cct, target_brightness):
         print("ESP32 ONLINE")
         print(health)
 
-        # Gecici CCT -> Cool oran donusumu.
-        # Gercek CCT kalibrasyonu sonraki adimda yapilacak.
         min_cct = 3000.0
         max_cct = 6500.0
 
@@ -616,6 +623,7 @@ def run_real(target_cct, target_brightness):
         target_warm = 100.0 - target_cool
 
         command_cool = target_cool
+        command_brightness = float(target_brightness)
 
         print(
             "SPECTRAL TARGET: "
@@ -625,19 +633,18 @@ def run_real(target_cct, target_brightness):
             )
         )
 
-        for iteration in range(1, 6):
+        for iteration in range(1, 8):
             command_warm = 100.0 - command_cool
 
-            # Toplam parlaklik hedefini uygula
             warm_output = (
                 command_warm
-                * float(target_brightness)
+                * command_brightness
                 / 100.0
             )
 
             cool_output = (
                 command_cool
-                * float(target_brightness)
+                * command_brightness
                 / 100.0
             )
 
@@ -646,9 +653,11 @@ def run_real(target_cct, target_brightness):
 
             print(
                 "COMMAND: "
-                "WARM {:.2f}% / COOL {:.2f}%".format(
+                "WARM {:.2f}% / COOL {:.2f}% "
+                "| BRIGHTNESS CMD {:.2f}%".format(
                     warm_output,
-                    cool_output
+                    cool_output,
+                    command_brightness
                 )
             )
 
@@ -659,19 +668,22 @@ def run_real(target_cct, target_brightness):
 
             time.sleep(1)
 
+            # İlk okuma stale olabildigi icin at
+            esp32.read_spectral()
+
             spectral = esp32.read_spectral()
 
-            estimate = estimator.estimate(
+            estimate = spectral_estimator.estimate(
                 spectral
             )
 
-            measured_warm = estimate[
-                "warm_percent"
-            ]
+            measured_warm = estimate["warm_percent"]
+            measured_cool = estimate["cool_percent"]
+            measured_cct = estimate["estimated_cct"]
 
-            measured_cool = estimate[
-                "cool_percent"
-            ]
+            measured_brightness = brightness_estimator.estimate(
+                spectral["VIS"]
+            )
 
             print(
                 "MEASURED: "
@@ -681,49 +693,77 @@ def run_real(target_cct, target_brightness):
                 )
             )
 
-            measured_cct = estimate[
-                "estimated_cct"
-            ]
-
             print(
-                "MEASURED CCT: {:.0f} K".format(
+                "MEASURED CCT       : {:.0f} K".format(
                     measured_cct
                 )
             )
 
             print(
-                "CCT ERROR   : {:+.0f} K".format(
-                    float(target_cct)
-                    - measured_cct
+                "MEASURED BRIGHTNESS: {:.1f}%".format(
+                    measured_brightness
                 )
             )
 
             print(
-                "R1/R2: {:.4f} / {:.4f}".format(
+                "CCT ERROR          : {:+.0f} K".format(
+                    float(target_cct) - measured_cct
+                )
+            )
+
+            print(
+                "BRIGHTNESS ERROR   : {:+.1f}%".format(
+                    float(target_brightness)
+                    - measured_brightness
+                )
+            )
+
+            print(
+                "R1/R2              : {:.4f} / {:.4f}".format(
                     estimate["ratio_450_640"],
                     estimate["ratio_475_690"]
                 )
             )
 
-            result = feedback.calculate(
+            cct_result = cct_feedback.calculate(
                 target_cct=target_cct,
                 measured_cct=measured_cct,
                 current_cool=command_cool
             )
 
-            if result["locked"]:
-                print("STATUS: CCT TARGET LOCKED")
-                break
-
-            print(
-                "CCT CORRECTION: {:+.2f} Cool %".format(
-                    result["correction_cool"]
-                )
+            brightness_result = brightness_feedback.calculate(
+                target_brightness=target_brightness,
+                measured_brightness=measured_brightness,
+                current_brightness=command_brightness
             )
 
-            command_cool = result[
-                "new_cool"
-            ]
+            if cct_result["locked"]:
+                print("CCT STATUS        : LOCKED")
+            else:
+                print(
+                    "CCT CORRECTION    : {:+.2f} Cool %".format(
+                        cct_result["correction_cool"]
+                    )
+                )
+
+            if brightness_result["locked"]:
+                print("BRIGHTNESS STATUS : LOCKED")
+            else:
+                print(
+                    "BRIGHTNESS CORRECT: {:+.2f}%".format(
+                        brightness_result["correction"]
+                    )
+                )
+
+            command_cool = cct_result["new_cool"]
+            command_brightness = brightness_result["new_brightness"]
+
+            if (
+                cct_result["locked"]
+                and brightness_result["locked"]
+            ):
+                print("STATUS: DUAL TARGET LOCKED")
+                break
 
     except Exception as exc:
         print("ESP32 ERROR")
