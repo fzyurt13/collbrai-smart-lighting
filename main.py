@@ -682,7 +682,8 @@ def run_real(target_cct, target_brightness):
             measured_cct = estimate["estimated_cct"]
 
             measured_brightness = brightness_estimator.estimate(
-                spectral["VIS"]
+                spectral["VIS"],
+                measured_cct
             )
 
             print(
