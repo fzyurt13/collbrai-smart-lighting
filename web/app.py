@@ -2,8 +2,10 @@ from flask import Flask, jsonify, render_template, request
 
 try:
     from web.system_state import system_state
+    from web.auth_store import verify_pin, change_pin
 except ModuleNotFoundError:
     from system_state import system_state
+    from auth_store import verify_pin, change_pin
 
 
 app = Flask(__name__)
@@ -17,6 +19,61 @@ def index():
 @app.route("/splash")
 def splash():
     return render_template("splash.html")
+
+
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
+@app.route("/setup")
+def setup():
+    return render_template("setup.html")
+
+
+@app.route("/settings")
+def settings():
+    return render_template("settings.html")
+
+
+@app.route("/profile")
+def profile():
+    return render_template("profile.html")
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    pin = str(data.get("pin", ""))
+
+    if not verify_pin(pin):
+        return jsonify({
+            "ok": False,
+            "error": "Invalid PIN"
+        }), 401
+
+    return jsonify({
+        "ok": True
+    })
+
+
+@app.route("/api/change-pin", methods=["POST"])
+def api_change_pin():
+    data = request.get_json(silent=True) or {}
+
+    new_pin = str(data.get("new_pin", ""))
+
+    try:
+        change_pin(new_pin)
+    except ValueError as exc:
+        return jsonify({
+            "ok": False,
+            "error": str(exc)
+        }), 400
+
+    return jsonify({
+        "ok": True
+    })
 
 
 @app.route("/api/state")

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraled | Login</title>
+
+<style>
+:root {
+    --bg: #07101b;
+    --surface: #0d1928;
+    --border: rgba(122,156,205,.17);
+    --text: #f3f7fc;
+    --muted: #71849d;
+    --blue: #2256c7;
+    --red: #e63745;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100svh;
+    background:
+        radial-gradient(circle at 18% 0%,
+            rgba(34,86,199,.23), transparent 36%),
+        radial-gradient(circle at 92% 10%,
+            rgba(230,55,69,.13), transparent 30%),
+        linear-gradient(180deg, #0a1524, var(--bg));
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+.page {
+    width: min(100%, 460px);
+    min-height: 100svh;
+    margin: auto;
+    padding: 38px 22px 28px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.brand {
+    text-align: center;
+}
+
+.logo {
+    width: min(210px, 58vw);
+}
+
+.tagline {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2.2px;
+}
+
+.login {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 28px 0;
+}
+
+.kicker {
+    color: #6385b4;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.7px;
+    text-align: center;
+}
+
+h1 {
+    margin: 10px 0 6px;
+    text-align: center;
+    font-size: 31px;
+    letter-spacing: -.8px;
+}
+
+.description {
+    margin: 0 auto 27px;
+    max-width: 300px;
+
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    padding: 15px;
+
+    border: 1px solid var(--border);
+    border-radius: 17px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,31,51,.93),
+            rgba(9,19,32,.95)
+        );
+}
+
+.avatar {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(34,86,199,.9),
+            rgba(230,55,69,.75)
+        );
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.profile-name {
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.profile-role {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: .7px;
+}
+
+.pin-title {
+    margin-top: 28px;
+    text-align: center;
+    color: #a8b5c7;
+    font-size: 11px;
+}
+
+.pin-dots {
+    height: 25px;
+    margin: 16px 0 20px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+}
+
+.pin-dot {
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    border: 1px solid #40526a;
+    background: transparent;
+
+    transition: 140ms ease;
+}
+
+.pin-dot.filled {
+    border-color: #5685e6;
+    background: #5685e6;
+
+    box-shadow:
+        0 0 12px rgba(72,123,225,.42);
+}
+
+.keypad {
+    width: min(100%, 300px);
+    margin: auto;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 11px;
+}
+
+.key {
+    height: 58px;
+
+    border: 1px solid var(--border);
+    border-radius: 15px;
+
+    background: rgba(14,27,45,.75);
+
+    color: var(--text);
+
+    font-size: 18px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        transform 80ms ease,
+        background 120ms ease,
+        border-color 120ms ease;
+}
+
+.key:active {
+    transform: scale(.96);
+
+    background: rgba(35,73,145,.35);
+    border-color: rgba(73,119,211,.5);
+}
+
+.key.empty {
+    visibility: hidden;
+}
+
+.key.delete {
+    color: #8393a8;
+    font-size: 17px;
+}
+
+.continue {
+    width: min(100%, 300px);
+
+    margin: 18px auto 0;
+    padding: 15px;
+
+    border: 0;
+    border-radius: 14px;
+
+    color: white;
+
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .8px;
+
+    cursor: pointer;
+
+    background:
+        linear-gradient(
+            100deg,
+            #2356c4,
+            #355fae 58%,
+            #d93646
+        );
+
+    box-shadow:
+        0 10px 28px rgba(34,86,199,.18);
+
+    transition: opacity 150ms ease;
+}
+
+.continue:disabled {
+    opacity: .28;
+    cursor: default;
+}
+
+.message {
+    height: 16px;
+
+    margin-top: 11px;
+
+    text-align: center;
+    color: #71849d;
+    font-size: 9px;
+}
+
+.footer {
+    text-align: center;
+
+    color: #40526a;
+
+    font-size: 8px;
+    letter-spacing: 1.2px;
+}
+
+.footer strong {
+    color: #6385b4;
+}
+
+@media (max-height: 700px) {
+    .page {
+        padding-top: 24px;
+    }
+
+    .login {
+        padding-top: 18px;
+    }
+
+    .key {
+        height: 51px;
+    }
+
+    h1 {
+        font-size: 27px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <header class="brand">
+
+        <img
+            class="logo"
+            src="{{ url_for('static', filename='meraled-logo.webp') }}"
+            alt="Meraled"
+        >
+
+        <div class="tagline">
+            SMART SHOWCASE LIGHTING
+        </div>
+
+    </header>
+
+
+    <main class="login">
+
+        <div class="kicker">
+            SECURE ACCESS
+        </div>
+
+        <h1>Welcome</h1>
+
+        <p class="description">
+            Enter your PIN to access the
+            Meraled lighting system.
+        </p>
+
+
+        <div class="profile">
+
+            <div class="avatar">
+                M
+            </div>
+
+            <div>
+                <div class="profile-name">
+                    Store Operator
+                </div>
+
+                <div class="profile-role">
+                    MERALED LIGHTING CONTROL
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="pin-title">
+            Enter 4-digit PIN
+        </div>
+
+        <div class="pin-dots">
+
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+
+        </div>
+
+
+        <div class="keypad">
+
+            <button class="key" onclick="pressKey('1')">1</button>
+            <button class="key" onclick="pressKey('2')">2</button>
+            <button class="key" onclick="pressKey('3')">3</button>
+
+            <button class="key" onclick="pressKey('4')">4</button>
+            <button class="key" onclick="pressKey('5')">5</button>
+            <button class="key" onclick="pressKey('6')">6</button>
+
+            <button class="key" onclick="pressKey('7')">7</button>
+            <button class="key" onclick="pressKey('8')">8</button>
+            <button class="key" onclick="pressKey('9')">9</button>
+
+            <button class="key empty"></button>
+
+            <button class="key" onclick="pressKey('0')">0</button>
+
+            <button class="key delete" onclick="deleteKey()">
+                ⌫
+            </button>
+
+        </div>
+
+
+        <button
+            id="continue-button"
+            class="continue"
+            onclick="continueLogin()"
+            disabled
+        >
+            CONTINUE
+        </button>
+
+        <div class="message" id="message"></div>
+
+    </main>
+
+
+    <footer class="footer">
+        POWERED BY <strong>COLLBRAI</strong>
+    </footer>
+
+</div>
+
+
+<script>
+let pin = "";
+
+const dots =
+    Array.from(
+        document.querySelectorAll(".pin-dot")
+    );
+
+const continueButton =
+    document.getElementById("continue-button");
+
+const message =
+    document.getElementById("message");
+
+
+function updatePin() {
+
+    dots.forEach((dot, index) => {
+        dot.classList.toggle(
+            "filled",
+            index < pin.length
+        );
+    });
+
+    continueButton.disabled =
+        pin.length !== 4;
+
+    message.textContent = "";
+}
+
+
+function pressKey(value) {
+
+    if (pin.length >= 4) {
+        return;
+    }
+
+    pin += value;
+
+    updatePin();
+}
+
+
+function deleteKey() {
+
+    pin = pin.slice(0, -1);
+
+    updatePin();
+}
+
+
+async function continueLogin() {
+
+    if (pin.length !== 4) {
+        return;
+    }
+
+    const button = document.getElementById("continue-button");
+    const message = document.getElementById("message");
+
+    button.disabled = true;
+    message.textContent = "VERIFYING...";
+
+    try {
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                pin: pin
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            message.textContent = "INVALID PIN";
+            pin = "";
+            updatePin();
+            return;
+        }
+
+        message.textContent = "ACCESS GRANTED";
+
+        setTimeout(() => {
+            window.location.href = "/setup";
+        }, 350);
+
+    } catch (error) {
+        message.textContent = "CONNECTION ERROR";
+    } finally {
+        if (pin.length === 4) {
+            button.disabled = false;
+        }
+    }
+}
+
+
+updatePin();
+</script>
+
+</body>
+</html>

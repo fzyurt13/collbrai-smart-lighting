@@ -79,6 +79,38 @@ body {
     margin-top: 7px;
 }
 
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-button {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: rgba(13, 25, 40, .82);
+    color: #8ea2bb;
+    font-size: 17px;
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        border-color 120ms ease,
+        transform 80ms ease;
+}
+
+.settings-button:hover {
+    background: rgba(29, 49, 76, .9);
+    border-color: rgba(122, 156, 205, .3);
+}
+
+.settings-button:active {
+    transform: scale(.95);
+}
+
 .system-pill {
     display: inline-flex;
     align-items: center;
@@ -564,9 +596,35 @@ input[type="range"]::-moz-range-thumb {
             </div>
         </div>
 
-        <div class="system-pill">
-            <span class="system-dot" id="system-dot"></span>
-            <span id="system-status">STARTING</span>
+        <div class="topbar-actions">
+
+            <div class="system-pill">
+                <span class="system-dot" id="system-dot"></span>
+                <span id="system-status">STARTING</span>
+            </div>
+
+            <button
+                class="settings-button"
+                onclick="window.location.href='/settings'"
+                aria-label="Settings"
+                title="Settings"
+            >
+                <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.09A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14H3v-4h.09A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 8.97 4.6 1.7 1.7 0 0 0 10 3.09V3h4v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.91 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15z"></path>
+                </svg>
+            </button>
+
         </div>
     </div>
 
@@ -819,6 +877,9 @@ input[type="range"]::-moz-range-thumb {
 <script>
 let currentMode = "AUTO";
 
+let manualCctDirty = false;
+let manualBrightnessDirty = false;
+
 const cctSlider =
     document.getElementById("manual-cct");
 
@@ -859,8 +920,15 @@ function updateManualDisplays() {
 }
 
 
-cctSlider.addEventListener("input", updateManualDisplays);
-brightnessSlider.addEventListener("input", updateManualDisplays);
+cctSlider.addEventListener("input", () => {
+    manualCctDirty = true;
+    updateManualDisplays();
+});
+
+brightnessSlider.addEventListener("input", () => {
+    manualBrightnessDirty = true;
+    updateManualDisplays();
+});
 
 
 function setView(mode, requestedMode) {
@@ -1025,6 +1093,9 @@ async function selectManual() {
                 Number(brightnessSlider.value)
         });
 
+        manualCctDirty = false;
+        manualBrightnessDirty = false;
+
         await loadState();
     }
     catch (error) {
@@ -1112,7 +1183,7 @@ async function loadState() {
 
         if (
             state.manual_target_cct != null &&
-            document.activeElement !== cctSlider
+            !manualCctDirty
         ) {
             cctSlider.value =
                 Number(state.manual_target_cct);
@@ -1120,7 +1191,7 @@ async function loadState() {
 
         if (
             state.manual_target_brightness != null &&
-            document.activeElement !== brightnessSlider
+            !manualBrightnessDirty
         ) {
             brightnessSlider.value =
                 Number(state.manual_target_brightness);

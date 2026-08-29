@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraled | Settings</title>
+
+<style>
+:root {
+    --bg: #07101b;
+    --surface: #0d1928;
+    --border: rgba(122,156,205,.17);
+    --text: #f3f7fc;
+    --muted: #71849d;
+    --blue: #2256c7;
+    --red: #e63745;
+    --green: #38c976;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100svh;
+    background:
+        radial-gradient(circle at 18% 0%,
+            rgba(34,86,199,.23), transparent 36%),
+        radial-gradient(circle at 92% 10%,
+            rgba(230,55,69,.13), transparent 30%),
+        linear-gradient(180deg, #0a1524, var(--bg));
+    color: var(--text);
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+.page {
+    width: min(100%, 520px);
+    min-height: 100svh;
+    margin: auto;
+    padding: 28px 20px 30px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.back {
+    border: 1px solid var(--border);
+    background: rgba(13,25,40,.8);
+    color: #a8b5c7;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.logo {
+    width: 150px;
+}
+
+.spacer {
+    width: 40px;
+}
+
+.header {
+    margin-top: 34px;
+}
+
+.eyebrow {
+    color: #6385b4;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.7px;
+}
+
+h1 {
+    margin: 8px 0 5px;
+    font-size: 30px;
+    letter-spacing: -.7px;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.section {
+    margin-top: 26px;
+}
+
+.section-title {
+    margin-bottom: 10px;
+    color: #8799b0;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+}
+
+.card {
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,31,51,.94),
+            rgba(9,19,32,.95)
+        );
+}
+
+.row {
+    min-height: 62px;
+    padding: 13px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.row + .row {
+    border-top: 1px solid rgba(122,156,205,.1);
+}
+
+.row-main {
+    min-width: 0;
+}
+
+.row-name {
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.row-sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.value {
+    color: #9fb2ca;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.online {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #9de2b9;
+}
+
+.online-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(56,201,118,.4);
+}
+
+.chevron {
+    color: #53657c;
+    font-size: 18px;
+}
+
+.action {
+    cursor: pointer;
+}
+
+.action:active {
+    background: rgba(37,73,135,.15);
+}
+
+.danger .row-name {
+    color: #ef707a;
+}
+
+.version {
+    margin-top: 28px;
+    text-align: center;
+    color: #40526a;
+    font-size: 8px;
+    letter-spacing: 1.1px;
+}
+
+.version strong {
+    color: #6385b4;
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="topbar">
+        <button class="back" onclick="goBack()">‹</button>
+
+        <img
+            class="logo"
+            src="{{ url_for('static', filename='meraled-logo.webp') }}"
+            alt="Meraled"
+        >
+
+        <div class="spacer"></div>
+    </div>
+
+
+    <div class="header">
+        <div class="eyebrow">SYSTEM</div>
+        <h1>Settings</h1>
+        <div class="subtitle">
+            Device, lighting and system configuration.
+        </div>
+    </div>
+
+
+    <section class="section">
+        <div class="section-title">SYSTEM STATUS</div>
+
+        <div class="card">
+
+            <div class="row">
+                <div class="row-main">
+                    <div class="row-name">Jetson Controller</div>
+                    <div class="row-sub">Main processing unit</div>
+                </div>
+
+                <div class="value online" id="health-jetson">
+                    <span class="online-dot"></span>
+                    <span class="health-text">CHECKING</span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-main">
+                    <div class="row-name">ESP32 Lighting Controller</div>
+                    <div class="row-sub">Wireless lighting interface</div>
+                </div>
+
+                <div class="value online" id="health-esp32">
+                    <span class="online-dot"></span>
+                    <span class="health-text">CHECKING</span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-main">
+                    <div class="row-name">Spectral Sensor</div>
+                    <div class="row-sub">AS7343 feedback sensor</div>
+                </div>
+
+                <div class="value online" id="health-as7343">
+                    <span class="online-dot"></span>
+                    <span class="health-text">CHECKING</span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-main">
+                    <div class="row-name">Camera</div>
+                    <div class="row-sub">Product recognition camera</div>
+                </div>
+
+                <div class="value online" id="health-camera">
+                    <span class="online-dot"></span>
+                    <span class="health-text">CHECKING</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="section-title">LIGHTING</div>
+
+        <div class="card">
+
+            <div class="row action">
+                <div class="row-main">
+                    <div class="row-name">Standby Lighting</div>
+                    <div class="row-sub">Default idle output</div>
+                </div>
+
+                <div class="value">
+                    2% / 2%
+                </div>
+            </div>
+
+            <div class="row action">
+                <div class="row-main">
+                    <div class="row-name">Transition Speed</div>
+                    <div class="row-sub">Recipe fade duration</div>
+                </div>
+
+                <div class="value">
+                    3 sec
+                </div>
+            </div>
+
+            <div class="row action">
+                <div class="row-main">
+                    <div class="row-name">Return to Standby</div>
+                    <div class="row-sub">Removal fade duration</div>
+                </div>
+
+                <div class="value">
+                    5 sec
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="section-title">NETWORK</div>
+
+        <div class="card">
+
+
+            <div class="row action" onclick="runSystemCheck()">
+                <div class="row-main">
+                    <div class="row-name">Run System Check</div>
+                    <div class="row-sub">Check connected Meraled devices</div>
+                </div>
+
+                <div class="chevron">›</div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="section-title">ACCOUNT</div>
+
+        <div class="card">
+
+            <div class="row action" onclick="openProfile()">
+                <div class="row-main">
+                    <div class="row-name">Store Operator</div>
+                    <div class="row-sub">Local device profile</div>
+                </div>
+
+                <div class="chevron">›</div>
+            </div>
+
+            <div class="row action danger" onclick="logout()">
+                <div class="row-main">
+                    <div class="row-name">Sign Out</div>
+                    <div class="row-sub">Return to login screen</div>
+                </div>
+
+                <div class="chevron">›</div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <div class="version">
+        MERALED SYSTEM • <strong>COLLBRAI</strong>
+    </div>
+
+</div>
+
+
+<script>
+function goBack() {
+    window.location.href = "/";
+}
+
+function logout() {
+    window.location.href = "/login";
+}
+
+function runSystemCheck() {
+    window.location.href = "/setup";
+}
+
+function openProfile() {
+    window.location.href = "/profile";
+}
+
+
+function setHealth(id, isOnline) {
+
+    const element = document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    const text =
+        element.querySelector(".health-text");
+
+    const dot =
+        element.querySelector(".online-dot");
+
+    text.textContent =
+        isOnline ? "ONLINE" : "OFFLINE";
+
+    if (isOnline) {
+        element.style.color = "#9de2b9";
+        dot.style.background = "#38c976";
+        dot.style.boxShadow =
+            "0 0 8px rgba(56,201,118,.4)";
+    }
+    else {
+        element.style.color = "#ef707a";
+        dot.style.background = "#e63745";
+        dot.style.boxShadow =
+            "0 0 8px rgba(230,55,69,.4)";
+    }
+}
+
+
+async function loadHealth() {
+
+    try {
+
+        const response = await fetch(
+            "/api/state",
+            { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " + response.status
+            );
+        }
+
+        const state =
+            await response.json();
+
+        const health =
+            state.health || {};
+
+        setHealth(
+            "health-jetson",
+            Boolean(health.jetson)
+        );
+
+        setHealth(
+            "health-esp32",
+            Boolean(health.esp32)
+        );
+
+        setHealth(
+            "health-as7343",
+            Boolean(health.as7343)
+        );
+
+        setHealth(
+            "health-camera",
+            Boolean(health.camera)
+        );
+
+    }
+    catch (error) {
+
+        setHealth("health-jetson", false);
+        setHealth("health-esp32", false);
+        setHealth("health-as7343", false);
+        setHealth("health-camera", false);
+    }
+}
+
+
+loadHealth();
+setInterval(loadHealth, 2000);
+</script>
+
+</body>
+</html>

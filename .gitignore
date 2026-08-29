@@ -31,3 +31,6 @@ dataset/jewelry/val/
 dataset/jewelry/test/
 dataset/jewelry/raw/
 esp32/wifi_config.py
+
+# Local authentication data
+data/operator_auth.json

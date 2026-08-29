@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraled | Profile</title>
+
+<style>
+:root {
+    --bg: #07101b;
+    --surface: #0d1928;
+    --border: rgba(122,156,205,.17);
+    --text: #f3f7fc;
+    --muted: #71849d;
+    --blue: #2256c7;
+    --red: #e63745;
+    --green: #38c976;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100svh;
+    background:
+        radial-gradient(circle at 18% 0%,
+            rgba(34,86,199,.23), transparent 36%),
+        radial-gradient(circle at 92% 10%,
+            rgba(230,55,69,.13), transparent 30%),
+        linear-gradient(180deg, #0a1524, var(--bg));
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+.page {
+    width: min(100%, 520px);
+    min-height: 100svh;
+    margin: auto;
+    padding: 28px 20px 30px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.back {
+    border: 1px solid var(--border);
+    background: rgba(13,25,40,.8);
+    color: #a8b5c7;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 12px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.logo {
+    width: 150px;
+}
+
+.spacer {
+    width: 40px;
+}
+
+.header {
+    margin-top: 34px;
+}
+
+.eyebrow {
+    color: #6385b4;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.7px;
+}
+
+h1 {
+    margin: 8px 0 5px;
+    font-size: 30px;
+    letter-spacing: -.7px;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.profile-card {
+    margin-top: 28px;
+    padding: 24px;
+
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,31,51,.94),
+            rgba(9,19,32,.95)
+        );
+
+    text-align: center;
+}
+
+.avatar {
+    width: 70px;
+    height: 70px;
+
+    margin: 0 auto 15px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 21px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2256c7,
+            #d93646
+        );
+
+    font-size: 23px;
+    font-weight: 800;
+
+    box-shadow:
+        0 12px 30px rgba(34,86,199,.2);
+}
+
+.profile-name {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.profile-role {
+    margin-top: 5px;
+    color: #6385b4;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 1.2px;
+}
+
+.status {
+    margin-top: 16px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 7px 11px;
+
+    border-radius: 999px;
+    border: 1px solid rgba(56,201,118,.17);
+
+    background: rgba(56,201,118,.05);
+
+    color: #9de2b9;
+    font-size: 9px;
+    font-weight: 750;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(56,201,118,.4);
+}
+
+.section {
+    margin-top: 26px;
+}
+
+.section-title {
+    margin-bottom: 10px;
+
+    color: #8799b0;
+
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+}
+
+.card {
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,31,51,.94),
+            rgba(9,19,32,.95)
+        );
+}
+
+.row {
+    min-height: 62px;
+    padding: 13px 15px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+.row + .row {
+    border-top: 1px solid rgba(122,156,205,.1);
+}
+
+.row-name {
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.row-sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.value {
+    color: #9fb2ca;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.action {
+    cursor: pointer;
+}
+
+.action:active {
+    background: rgba(37,73,135,.15);
+}
+
+.chevron {
+    color: #53657c;
+    font-size: 18px;
+}
+
+.footer {
+    margin-top: 30px;
+
+    text-align: center;
+    color: #40526a;
+
+    font-size: 8px;
+    letter-spacing: 1.2px;
+}
+
+.footer strong {
+    color: #6385b4;
+}
+
+.pin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(2, 8, 16, .78);
+    backdrop-filter: blur(8px);
+}
+
+.pin-modal.show {
+    display: flex;
+}
+
+.pin-dialog {
+    width: min(100%, 390px);
+    padding: 25px;
+
+    border: 1px solid var(--border);
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,31,51,.99),
+            rgba(7,16,27,.99)
+        );
+
+    box-shadow: 0 25px 70px rgba(0,0,0,.45);
+}
+
+.pin-dialog h2 {
+    margin: 0 0 7px;
+    font-size: 21px;
+}
+
+.pin-description {
+    margin-bottom: 20px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.pin-label {
+    display: block;
+    margin: 15px 0 7px;
+
+    color: #8ea2bc;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.pin-input {
+    width: 100%;
+    height: 48px;
+
+    padding: 0 15px;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+
+    background: #091522;
+    color: white;
+
+    font-size: 18px;
+    letter-spacing: 8px;
+    text-align: center;
+}
+
+.pin-input:focus {
+    border-color: rgba(52,104,220,.75);
+}
+
+.pin-message {
+    min-height: 18px;
+    margin-top: 12px;
+
+    color: #ff6d78;
+    font-size: 9px;
+    text-align: center;
+}
+
+.pin-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.pin-button {
+    flex: 1;
+    height: 44px;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .5px;
+
+    cursor: pointer;
+}
+
+.pin-cancel {
+    background: #0c1928;
+    color: #93a5bb;
+}
+
+.pin-save {
+    border: none;
+    color: white;
+
+    background:
+        linear-gradient(
+            100deg,
+            var(--blue),
+            var(--red)
+        );
+}
+
+.pin-success {
+    color: var(--green);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="topbar">
+
+        <button class="back" onclick="goBack()">
+            ‹
+        </button>
+
+        <img
+            class="logo"
+            src="{{ url_for('static', filename='meraled-logo.webp') }}"
+            alt="Meraled"
+        >
+
+        <div class="spacer"></div>
+
+    </div>
+
+
+    <div class="header">
+
+        <div class="eyebrow">
+            ACCOUNT
+        </div>
+
+        <h1>Profile</h1>
+
+        <div class="subtitle">
+            Local Meraled operator profile and access settings.
+        </div>
+
+    </div>
+
+
+    <div class="profile-card">
+
+        <div class="avatar">
+            M
+        </div>
+
+        <div class="profile-name">
+            Store Operator
+        </div>
+
+        <div class="profile-role">
+            MERALED LIGHTING CONTROL
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            ACTIVE SESSION
+        </div>
+
+    </div>
+
+
+    <section class="section">
+
+        <div class="section-title">
+            ACCESS
+        </div>
+
+        <div class="card">
+
+            <div class="row">
+
+                <div>
+                    <div class="row-name">
+                        Profile Type
+                    </div>
+
+                    <div class="row-sub">
+                        Local showcase operator
+                    </div>
+                </div>
+
+                <div class="value">
+                    OPERATOR
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <div>
+                    <div class="row-name">
+                        Access Method
+                    </div>
+
+                    <div class="row-sub">
+                        Local PIN authentication
+                    </div>
+                </div>
+
+                <div class="value">
+                    4-DIGIT PIN
+                </div>
+
+            </div>
+
+
+            <div class="row action" onclick="openPinModal()">
+
+                <div>
+                    <div class="row-name">
+                        Change PIN
+                    </div>
+
+                    <div class="row-sub">
+                        Update operator access PIN
+                    </div>
+                </div>
+
+                <div class="chevron">
+                    ›
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="section">
+
+        <div class="section-title">
+            DEVICE ACCESS
+        </div>
+
+        <div class="card">
+
+            <div class="row">
+
+                <div>
+                    <div class="row-name">
+                        Lighting Control
+                    </div>
+
+                    <div class="row-sub">
+                        AUTO and MANUAL modes
+                    </div>
+                </div>
+
+                <div class="value">
+                    ALLOWED
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <div>
+                    <div class="row-name">
+                        System Settings
+                    </div>
+
+                    <div class="row-sub">
+                        Local Meraled configuration
+                    </div>
+                </div>
+
+                <div class="value">
+                    ALLOWED
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <div class="footer">
+        MERALED SYSTEM • <strong>COLLBRAI</strong>
+    </div>
+
+</div>
+
+
+<script>
+function goBack() {
+    window.location.href = "/settings";
+}
+
+function openPinModal() {
+    document.getElementById("newPin").value = "";
+    document.getElementById("confirmPin").value = "";
+    document.getElementById("pinMessage").textContent = "";
+    document.getElementById("pinMessage").className = "pin-message";
+
+    document.getElementById("pinModal").classList.add("show");
+
+    setTimeout(() => {
+        document.getElementById("newPin").focus();
+    }, 100);
+}
+
+function closePinModal() {
+    document.getElementById("pinModal").classList.remove("show");
+}
+
+async function savePin() {
+    const newPin =
+        document.getElementById("newPin").value.trim();
+
+    const confirmPin =
+        document.getElementById("confirmPin").value.trim();
+
+    const message =
+        document.getElementById("pinMessage");
+
+    if (!/^\d{4}$/.test(newPin)) {
+        message.className = "pin-message";
+        message.textContent = "PIN must contain exactly 4 digits.";
+        return;
+    }
+
+    if (newPin !== confirmPin) {
+        message.className = "pin-message";
+        message.textContent = "PIN entries do not match.";
+        return;
+    }
+
+    message.className = "pin-message";
+    message.textContent = "SAVING...";
+
+    try {
+        const response = await fetch("/api/change-pin", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                new_pin: newPin
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            message.className = "pin-message";
+            message.textContent =
+                data.error || "PIN could not be changed.";
+            return;
+        }
+
+        message.className = "pin-message pin-success";
+        message.textContent = "PIN CHANGED SUCCESSFULLY";
+
+        setTimeout(() => {
+            closePinModal();
+        }, 1000);
+
+    } catch (error) {
+        message.className = "pin-message";
+        message.textContent = "CONNECTION ERROR";
+    }
+}
+</script>
+
+
+<div class="pin-modal" id="pinModal">
+
+    <div class="pin-dialog">
+
+        <h2>Change PIN</h2>
+
+        <div class="pin-description">
+            Enter and confirm your new 4-digit operator PIN.
+        </div>
+
+        <label class="pin-label">
+            NEW PIN
+        </label>
+
+        <input
+            id="newPin"
+            class="pin-input"
+            type="password"
+            inputmode="numeric"
+            maxlength="4"
+            autocomplete="new-password"
+        >
+
+        <label class="pin-label">
+            CONFIRM PIN
+        </label>
+
+        <input
+            id="confirmPin"
+            class="pin-input"
+            type="password"
+            inputmode="numeric"
+            maxlength="4"
+            autocomplete="new-password"
+        >
+
+        <div
+            class="pin-message"
+            id="pinMessage">
+        </div>
+
+        <div class="pin-actions">
+
+            <button
+                class="pin-button pin-cancel"
+                onclick="closePinModal()">
+                CANCEL
+            </button>
+
+            <button
+                class="pin-button pin-save"
+                onclick="savePin()">
+                SAVE PIN
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
