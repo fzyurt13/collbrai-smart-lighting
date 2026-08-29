@@ -967,6 +967,303 @@ def smooth_set_warm_cool(
         time.sleep(delay)
 
 
+
+def run_manual_control(
+    esp32,
+    current_warm,
+    current_cool,
+    standby_level
+):
+    print()
+    print("=" * 60)
+    print("MANUAL MODE ENTERED")
+    print("=" * 60)
+
+    spectral_estimator = SpectralRatioEstimator()
+    brightness_estimator = BrightnessEstimator()
+
+    cct_feedback = CCTFeedbackController(
+        warm_cct=3000.0,
+        cool_cct=6500.0,
+        gain=0.5,
+        tolerance_kelvin=50.0,
+        max_correction=5.0
+    )
+
+    brightness_feedback = BrightnessFeedbackController(
+        gain=0.5,
+        tolerance=2.0,
+        max_correction=8.0
+    )
+
+    active_target = None
+    last_feedback = 0.0
+    feedback_interval = 5.0
+
+    while True:
+        state = system_state.get()
+
+        if state.get("requested_mode") != "MANUAL":
+            print()
+            print("MANUAL MODE EXIT REQUESTED")
+
+            linear_fade_warm_cool(
+                esp32=esp32,
+                start_warm=current_warm,
+                start_cool=current_cool,
+                target_warm=standby_level,
+                target_cool=standby_level,
+                duration=5.0
+            )
+
+            current_warm = standby_level
+            current_cool = standby_level
+
+            system_state.update(
+                mode="AUTO",
+                requested_mode=None,
+                status="STANDBY",
+                product=None,
+                target_cct=None,
+                measured_cct=None,
+                target_brightness=None,
+                measured_brightness=None,
+                warm_output=current_warm,
+                cool_output=current_cool
+            )
+
+            print("AUTO MODE RESTORED")
+            print()
+
+            return current_warm, current_cool
+
+        target_cct = state.get("manual_target_cct")
+        target_brightness = state.get(
+            "manual_target_brightness"
+        )
+
+        if (
+            target_cct is None
+            or target_brightness is None
+        ):
+            time.sleep(0.2)
+            continue
+
+        target_cct = float(target_cct)
+        target_brightness = float(target_brightness)
+
+        requested_target = (
+            target_cct,
+            target_brightness
+        )
+
+        # Yeni MANUAL hedef geldiyse nominal seviyeye gec.
+        if requested_target != active_target:
+            active_target = requested_target
+
+            print()
+            print(
+                "MANUAL TARGET: {:.0f} K / {:.1f}%".format(
+                    target_cct,
+                    target_brightness
+                )
+            )
+
+            recipe_output = calculate_recipe_output(
+                target_cct=target_cct,
+                target_brightness=target_brightness
+            )
+
+            target_warm_output = float(
+                recipe_output["warm_output"]
+            )
+            target_cool_output = float(
+                recipe_output["cool_output"]
+            )
+
+            print(
+                "MANUAL NOMINAL: WARM {:.2f}% / COOL {:.2f}%".format(
+                    target_warm_output,
+                    target_cool_output
+                )
+            )
+
+            system_state.update(
+                mode="MANUAL",
+                status="ADJUSTING",
+                product=None,
+                target_cct=target_cct,
+                target_brightness=target_brightness
+            )
+
+            linear_fade_warm_cool(
+                esp32=esp32,
+                start_warm=current_warm,
+                start_cool=current_cool,
+                target_warm=target_warm_output,
+                target_cool=target_cool_output,
+                duration=3.0
+            )
+
+            current_warm = target_warm_output
+            current_cool = target_cool_output
+
+            system_state.update(
+                warm_output=current_warm,
+                cool_output=current_cool
+            )
+
+            last_feedback = 0.0
+
+        now = time.monotonic()
+
+        if now - last_feedback < feedback_interval:
+            time.sleep(0.1)
+            continue
+
+        last_feedback = now
+
+        try:
+            spectral = esp32.read_spectral()
+
+            estimate = spectral_estimator.estimate(
+                spectral
+            )
+
+            measured_cct = float(
+                estimate["estimated_cct"]
+            )
+
+            measured_brightness = float(
+                brightness_estimator.estimate(
+                    spectral["VIS"],
+                    measured_cct
+                )
+            )
+
+            system_state.update(
+                measured_cct=measured_cct,
+                measured_brightness=measured_brightness
+            )
+
+            print()
+            print(
+                "MANUAL MEASURED: {:.0f} K / {:.1f}%".format(
+                    measured_cct,
+                    measured_brightness
+                )
+            )
+
+            command_brightness = max(
+                0.0,
+                min(
+                    100.0,
+                    current_warm + current_cool
+                )
+            )
+
+            if command_brightness > 0.01:
+                command_cool = (
+                    current_cool
+                    / command_brightness
+                    * 100.0
+                )
+            else:
+                command_cool = 0.0
+
+            cct_result = cct_feedback.calculate(
+                target_cct=target_cct,
+                measured_cct=measured_cct,
+                current_cool=command_cool
+            )
+
+            brightness_result = (
+                brightness_feedback.calculate(
+                    target_brightness=target_brightness,
+                    measured_brightness=measured_brightness,
+                    current_brightness=command_brightness
+                )
+            )
+
+            if (
+                cct_result["locked"]
+                and brightness_result["locked"]
+            ):
+                system_state.update(
+                    status="TARGET HOLD",
+                    warm_output=current_warm,
+                    cool_output=current_cool
+                )
+
+                print("MANUAL STATUS: TARGET HOLD")
+                continue
+
+            command_cool = float(
+                cct_result["new_cool"]
+            )
+
+            command_brightness = float(
+                brightness_result["new_brightness"]
+            )
+
+            command_warm = 100.0 - command_cool
+
+            new_warm_output = (
+                command_warm
+                * command_brightness
+                / 100.0
+            )
+
+            new_cool_output = (
+                command_cool
+                * command_brightness
+                / 100.0
+            )
+
+            esp32.set_warm_cool(
+                new_warm_output,
+                new_cool_output
+            )
+
+            current_warm = new_warm_output
+            current_cool = new_cool_output
+
+            ambient_limit = (
+                current_warm <= 0.01
+                and current_cool <= 0.01
+                and measured_brightness
+                > target_brightness + 2.0
+            )
+
+            system_state.update(
+                status=(
+                    "AMBIENT LIMIT"
+                    if ambient_limit
+                    else "ADJUSTING"
+                ),
+                warm_output=current_warm,
+                cool_output=current_cool,
+                measured_cct=measured_cct,
+                measured_brightness=measured_brightness
+            )
+
+            print(
+                "MANUAL CORRECTION: "
+                "WARM {:.2f}% / COOL {:.2f}%".format(
+                    current_warm,
+                    current_cool
+                )
+            )
+
+        except Exception as exc:
+            print(
+                "MANUAL AS7343 ERROR:",
+                exc
+            )
+
+            time.sleep(1.0)
+
+
 def run_continuous_real(args):
     import cv2
     import numpy as np
@@ -1069,6 +1366,19 @@ def run_continuous_real(args):
         print()
 
         while True:
+            state = system_state.get()
+
+            if state.get("requested_mode") == "MANUAL":
+                current_warm, current_cool = run_manual_control(
+                    esp32=esp32,
+                    current_warm=current_warm,
+                    current_cool=current_cool,
+                    standby_level=STANDBY_LEVEL
+                )
+
+                presence_hits = 0
+                continue
+
             frame = camera.read()
 
             roi = frame[

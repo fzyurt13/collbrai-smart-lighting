@@ -18,7 +18,7 @@
         }
 
         .container {
-            max-width: 520px;
+            max-width: 560px;
             margin: 0 auto;
             padding: 20px 16px 28px;
         }
@@ -54,13 +54,12 @@
             font-weight: bold;
             letter-spacing: 1.2px;
             color: #8b949e;
-            margin-bottom: 9px;
+            margin-bottom: 10px;
         }
 
         .status {
             font-size: 22px;
             font-weight: bold;
-            color: #3fb950;
         }
 
         .mode-buttons {
@@ -71,20 +70,80 @@
         button {
             flex: 1;
             padding: 14px;
-            border: none;
+            border: 1px solid #30363d;
             border-radius: 12px;
             font-size: 14px;
             font-weight: bold;
+            color: #ffffff;
+            background: #21262d;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        .auto {
+        button:hover {
+            filter: brightness(1.15);
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .auto.active {
             background: #b7191d;
-            color: #ffffff;
+            border-color: #b7191d;
         }
 
-        .manual {
-            background: #30363d;
+        .manual.active {
+            background: #1f6feb;
+            border-color: #1f6feb;
+        }
+
+        .control-panel {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #30363d;
+        }
+
+        .control-row {
+            margin-bottom: 14px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 7px;
+            font-size: 12px;
+            color: #c9d1d9;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            background: #0d1117;
             color: #ffffff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: #58a6ff;
+        }
+
+        .apply-button {
+            width: 100%;
+            margin-top: 4px;
+            background: #238636;
+            border-color: #238636;
+        }
+
+        .manual-note {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #8b949e;
+            line-height: 1.4;
         }
 
         .product {
@@ -121,8 +180,12 @@
             border-bottom: none;
         }
 
+        .output-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
         .ok {
-            color: #3fb950;
             font-size: 12px;
             font-weight: bold;
         }
@@ -137,6 +200,22 @@
         .footer strong {
             color: #9da7b3;
             letter-spacing: 1px;
+        }
+
+        .error-message {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #3d1618;
+            color: #f85149;
+            font-size: 12px;
+        }
+
+        @media (max-width: 420px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -159,8 +238,67 @@
         <div class="card-title">CONTROL MODE</div>
 
         <div class="mode-buttons">
-            <button class="auto" id="auto-button">AUTO</button>
-            <button class="manual" id="manual-button">MANUAL</button>
+            <button class="auto active" id="auto-button" onclick="setAuto()">
+                AUTO
+            </button>
+
+            <button class="manual" id="manual-button" onclick="selectManual()">
+                MANUAL
+            </button>
+        </div>
+
+        <div class="control-panel" id="manual-panel">
+
+            <div class="control-row">
+                <div class="control-label">
+                    <span>CCT</span>
+                    <span>3000–6500 K</span>
+                </div>
+
+                <input
+                    type="number"
+                    id="manual-cct"
+                    min="3000"
+                    max="6500"
+                    step="100"
+                    value="4200"
+                    disabled
+                >
+            </div>
+
+            <div class="control-row">
+                <div class="control-label">
+                    <span>BRIGHTNESS</span>
+                    <span>0–100 %</span>
+                </div>
+
+                <input
+                    type="number"
+                    id="manual-brightness"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value="70"
+                    disabled
+                >
+            </div>
+
+            <button
+                class="apply-button"
+                id="apply-button"
+                onclick="applyManual()"
+                disabled
+            >
+                APPLY MANUAL
+            </button>
+
+            <div class="manual-note">
+                MANUAL modda CCT ve parlaklık hedefleri AS7343
+                geri beslemesi ile gerçek zamanlı olarak ayarlanır.
+            </div>
+
+            <div class="error-message" id="manual-error"></div>
+
         </div>
     </div>
 
@@ -200,12 +338,12 @@
 
         <div class="row">
             <span>Warm Channel</span>
-            <strong id="warm-output">--</strong>
+            <strong class="output-value" id="warm-output">--</strong>
         </div>
 
         <div class="row">
             <span>Cool Channel</span>
-            <strong id="cool-output">--</strong>
+            <strong class="output-value" id="cool-output">--</strong>
         </div>
     </div>
 
@@ -243,12 +381,16 @@
 
 
 <script>
+
+let currentMode = "AUTO";
+let lastState = null;
+
 function formatProduct(product) {
     if (!product) return "No Product";
 
     return product
         .replaceAll("_", " ")
-        .replace(/\\b\\w/g, c => c.toUpperCase());
+        .replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function formatValue(value, decimals) {
@@ -280,13 +422,146 @@ function setStatus(status) {
         el.style.color = "#f85149";
     } else if (value === "STANDBY") {
         el.style.color = "#8b949e";
+    } else if (value === "CONNECTION LOST") {
+        el.style.color = "#f85149";
     } else {
         el.style.color = "#d29922";
     }
 }
 
+function setModeUI(mode, requestedMode) {
+
+    const autoButton = document.getElementById("auto-button");
+    const manualButton = document.getElementById("manual-button");
+
+    const cctInput = document.getElementById("manual-cct");
+    const brightnessInput =
+        document.getElementById("manual-brightness");
+
+    const applyButton =
+        document.getElementById("apply-button");
+
+    const manualActive =
+        mode === "MANUAL" || requestedMode === "MANUAL";
+
+    const autoActive =
+        mode === "AUTO" && requestedMode !== "MANUAL";
+
+    if (autoActive) {
+        autoButton.classList.add("active");
+        manualButton.classList.remove("active");
+    } else {
+        autoButton.classList.remove("active");
+        manualButton.classList.add("active");
+    }
+
+    cctInput.disabled = !manualActive;
+    brightnessInput.disabled = !manualActive;
+    applyButton.disabled = !manualActive;
+
+    currentMode = manualActive ? "MANUAL" : "AUTO";
+}
+
+function showManualError(message) {
+    const el = document.getElementById("manual-error");
+
+    if (!message) {
+        el.style.display = "none";
+        el.textContent = "";
+        return;
+    }
+
+    el.style.display = "block";
+    el.textContent = message;
+}
+
+function selectManual() {
+
+    showManualError("");
+
+    const cct =
+        Number(document.getElementById("manual-cct").value);
+
+    const brightness =
+        Number(document.getElementById("manual-brightness").value);
+
+    if (!Number.isFinite(cct) ||
+        cct < 3000 ||
+        cct > 6500) {
+
+        showManualError("CCT 3000–6500 K arasında olmalıdır.");
+        return;
+    }
+
+    if (!Number.isFinite(brightness) ||
+        brightness < 0 ||
+        brightness > 100) {
+
+        showManualError("Brightness 0–100% arasında olmalıdır.");
+        return;
+    }
+
+    fetch("/api/manual", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            target_cct: cct,
+            target_brightness: brightness
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if (!data.ok) {
+            throw new Error(
+                data.error || "MANUAL isteği başarısız."
+            );
+        }
+
+        showManualError("");
+
+        loadState();
+
+    })
+    .catch(error => {
+        showManualError(error.message);
+    });
+}
+
+function applyManual() {
+    selectManual();
+}
+
+function setAuto() {
+
+    showManualError("");
+
+    fetch("/api/auto", {
+        method: "POST"
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if (!data.ok) {
+            throw new Error(
+                data.error || "AUTO isteği başarısız."
+            );
+        }
+
+        loadState();
+
+    })
+    .catch(error => {
+        showManualError(error.message);
+    });
+}
+
 async function loadState() {
+
     try {
+
         const response = await fetch("/api/state", {
             cache: "no-store"
         });
@@ -297,7 +572,14 @@ async function loadState() {
 
         const state = await response.json();
 
+        lastState = state;
+
         setStatus(state.status);
+
+        setModeUI(
+            state.mode,
+            state.requested_mode
+        );
 
         document.getElementById("product").textContent =
             formatProduct(state.product);
@@ -344,8 +626,28 @@ async function loadState() {
             state.health && state.health.camera
         );
 
+        if (
+            state.manual_target_cct != null &&
+            document.activeElement !==
+                document.getElementById("manual-cct")
+        ) {
+            document.getElementById("manual-cct").value =
+                Number(state.manual_target_cct).toFixed(0);
+        }
+
+        if (
+            state.manual_target_brightness != null &&
+            document.activeElement !==
+                document.getElementById("manual-brightness")
+        ) {
+            document.getElementById("manual-brightness").value =
+                Number(state.manual_target_brightness).toFixed(1);
+        }
+
     } catch (error) {
+
         const el = document.getElementById("system-status");
+
         el.textContent = "● CONNECTION LOST";
         el.style.color = "#f85149";
     }
@@ -353,6 +655,7 @@ async function loadState() {
 
 loadState();
 setInterval(loadState, 1000);
+
 </script>
 
 </body>

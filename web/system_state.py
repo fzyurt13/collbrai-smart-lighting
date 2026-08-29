@@ -9,6 +9,11 @@ class SystemState:
         self._state = {
             "status": "STANDBY",
             "mode": "AUTO",
+            "requested_mode": None,
+
+            "manual_target_cct": None,
+            "manual_target_brightness": None,
+
             "product": None,
 
             "target_cct": None,
@@ -39,6 +44,18 @@ class SystemState:
             for key, value in kwargs.items():
                 if key in self._state["health"]:
                     self._state["health"][key] = bool(value)
+
+    def request_manual(self, target_cct, target_brightness):
+        with self._lock:
+            self._state["requested_mode"] = "MANUAL"
+            self._state["manual_target_cct"] = float(target_cct)
+            self._state["manual_target_brightness"] = float(
+                target_brightness
+            )
+
+    def request_auto(self):
+        with self._lock:
+            self._state["requested_mode"] = "AUTO"
 
     def get(self):
         with self._lock:
