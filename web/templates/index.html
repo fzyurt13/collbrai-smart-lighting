@@ -1,389 +1,830 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meraled Smart Lighting</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraled Smart Lighting</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+:root {
+    --bg: #07101b;
+    --bg-2: #0a1422;
+    --surface: #0e1928;
+    --surface-2: #111e30;
+    --border: rgba(122, 156, 205, 0.16);
 
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #0d1117;
-            color: #ffffff;
-        }
+    --text: #f3f7fc;
+    --muted: #74849a;
+    --muted-2: #4f6077;
 
-        .container {
-            max-width: 560px;
-            margin: 0 auto;
-            padding: 20px 16px 28px;
-        }
+    --blue: #2256c7;
+    --blue-soft: #3e75e7;
+    --red: #e63745;
+    --red-soft: #ff5a68;
 
-        .brand {
-            text-align: center;
-            padding: 14px 0 24px;
-        }
+    --green: #38c976;
+    --amber: #f0b64b;
+    --danger: #ff5360;
 
-        .brand img {
-            width: 220px;
-            max-width: 75%;
-            height: auto;
-        }
+    --shadow: 0 20px 55px rgba(0,0,0,0.26);
+}
 
-        .subtitle {
-            margin-top: 10px;
-            font-size: 12px;
-            letter-spacing: 2px;
-            color: #8b949e;
-        }
+* {
+    box-sizing: border-box;
+}
 
-        .card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 14px;
-        }
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
 
-        .card-title {
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 1.2px;
-            color: #8b949e;
-            margin-bottom: 10px;
-        }
+body {
+    background:
+        radial-gradient(circle at 18% -10%, rgba(34,86,199,0.19), transparent 36%),
+        radial-gradient(circle at 92% 8%, rgba(230,55,69,0.11), transparent 28%),
+        linear-gradient(180deg, var(--bg-2), var(--bg));
+    color: var(--text);
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
 
-        .status {
-            font-size: 22px;
-            font-weight: bold;
-        }
+.app {
+    width: min(100%, 560px);
+    margin: 0 auto;
+    padding: 22px 18px 34px;
+}
 
-        .mode-buttons {
-            display: flex;
-            gap: 10px;
-        }
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 24px;
+}
 
-        button {
-            flex: 1;
-            padding: 14px;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #ffffff;
-            background: #21262d;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+.brand img {
+    width: 154px;
+    max-width: 44vw;
+    display: block;
+}
 
-        button:hover {
-            filter: brightness(1.15);
-        }
+.subtitle {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 1.8px;
+    margin-top: 7px;
+}
 
-        button:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
+.system-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.025);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
 
-        .auto.active {
-            background: #b7191d;
-            border-color: #b7191d;
-        }
+.system-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.025);
+}
 
-        .manual.active {
-            background: #1f6feb;
-            border-color: #1f6feb;
-        }
+.mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 26px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    background: rgba(9,18,31,0.82);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
 
-        .control-panel {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #30363d;
-        }
+.mode-switch button {
+    position: relative;
+    border: 0;
+    border-radius: 11px;
+    padding: 14px 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    cursor: pointer;
+    transition: 180ms ease;
+}
 
-        .control-row {
-            margin-bottom: 14px;
-        }
+.mode-switch button.active {
+    color: white;
+    background:
+        linear-gradient(
+            110deg,
+            rgba(34,86,199,.92),
+            rgba(44,83,175,.9) 58%,
+            rgba(230,55,69,.78)
+        );
+    box-shadow:
+        0 8px 24px rgba(34,86,199,.18),
+        inset 0 1px 0 rgba(255,255,255,.1);
+}
 
-        .control-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 7px;
-            font-size: 12px;
-            color: #c9d1d9;
-        }
+.view {
+    display: none;
+}
 
-        input[type="number"] {
-            width: 100%;
-            padding: 13px;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-            background: #0d1117;
-            color: #ffffff;
-            font-size: 16px;
-            outline: none;
-        }
+.view.active {
+    display: block;
+    animation: fadeView 180ms ease;
+}
 
-        input[type="number"]:focus {
-            border-color: #58a6ff;
-        }
+@keyframes fadeView {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 
-        .apply-button {
-            width: 100%;
-            margin-top: 4px;
-            background: #238636;
-            border-color: #238636;
-        }
+.section {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
 
-        .manual-note {
-            margin-top: 10px;
-            font-size: 11px;
-            color: #8b949e;
-            line-height: 1.4;
-        }
+.section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
 
-        .product {
-            font-size: 22px;
-            font-weight: bold;
-        }
+.eyebrow {
+    color: #6884aa;
+    font-size: 9px;
+    letter-spacing: 1.55px;
+    font-weight: 800;
+    margin-bottom: 9px;
+}
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
+.title {
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -.7px;
+}
 
-        .value {
-            font-size: 24px;
-            font-weight: bold;
-        }
+.title-gradient {
+    background: linear-gradient(90deg, #7fa9ff, #f66b77);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
 
-        .unit {
-            margin-top: 4px;
-            font-size: 11px;
-            color: #8b949e;
-        }
+.product-card {
+    position: relative;
+    overflow: hidden;
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(145deg, rgba(21,38,61,.88), rgba(10,20,34,.9));
+    box-shadow: var(--shadow);
+}
 
-        .row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 9px 0;
-            border-bottom: 1px solid #30363d;
-        }
+.product-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -80px auto;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(34,86,199,.12);
+    filter: blur(6px);
+}
 
-        .row:last-child {
-            border-bottom: none;
-        }
+.product-name {
+    position: relative;
+    z-index: 1;
+    font-size: 28px;
+    font-weight: 720;
+    letter-spacing: -.6px;
+}
 
-        .output-value {
-            font-size: 16px;
-            font-weight: bold;
-        }
+.product-sub {
+    position: relative;
+    z-index: 1;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 11px;
+}
 
-        .ok {
-            font-size: 12px;
-            font-weight: bold;
-        }
+.metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 11px;
+}
 
-        .footer {
-            text-align: center;
-            padding-top: 18px;
-            color: #6e7681;
-            font-size: 11px;
-        }
+.metric {
+    min-height: 100px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background:
+        linear-gradient(145deg, rgba(15,27,44,.94), rgba(9,18,30,.96));
+    padding: 15px;
+}
 
-        .footer strong {
-            color: #9da7b3;
-            letter-spacing: 1px;
-        }
+.metric-label {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 1.05px;
+    font-weight: 700;
+}
 
-        .error-message {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            background: #3d1618;
-            color: #f85149;
-            font-size: 12px;
-        }
+.metric-value {
+    margin-top: 12px;
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+}
 
-        @media (max-width: 420px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+.metric-target {
+    border-color: rgba(54,103,214,.30);
+}
+
+.metric-measured {
+    border-color: rgba(230,55,69,.22);
+}
+
+.output-row {
+    margin-top: 18px;
+}
+
+.output-row:first-child {
+    margin-top: 0;
+}
+
+.output-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    margin-bottom: 9px;
+}
+
+.output-name {
+    color: #b7c4d5;
+}
+
+.output-value {
+    font-weight: 750;
+}
+
+.output-track {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #152337;
+    border: 1px solid rgba(255,255,255,.025);
+}
+
+.output-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    transition: width .35s ease;
+}
+
+.output-fill.warm {
+    background: linear-gradient(90deg, #dc3c49, #ff8a61);
+}
+
+.output-fill.cool {
+    background: linear-gradient(90deg, #244fbb, #6a9dff);
+}
+
+.manual-hero {
+    text-align: center;
+    margin: 8px 0 24px;
+    padding: 24px 15px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background:
+        radial-gradient(circle at 50% 10%, rgba(53,97,201,.18), transparent 50%),
+        rgba(12,23,38,.72);
+    box-shadow: var(--shadow);
+}
+
+.manual-kicker {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 1.45px;
+    font-weight: 800;
+}
+
+.manual-main-value {
+    margin-top: 9px;
+    font-size: 58px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -2.3px;
+}
+
+.manual-unit {
+    margin-top: 8px;
+    color: #61738c;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+}
+
+.control-block {
+    margin-top: 24px;
+}
+
+.control-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 11px;
+}
+
+.control-name {
+    font-size: 12px;
+    color: #c0cad8;
+}
+
+.control-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+#manual-cct {
+    background:
+        linear-gradient(
+            90deg,
+            #dd4b42 0%,
+            #ed8465 26%,
+            #d8d5cb 50%,
+            #7199dc 74%,
+            #2452bd 100%
+        );
+}
+
+#manual-brightness {
+    background:
+        linear-gradient(
+            90deg,
+            #172843 0%,
+            #2452bd 42%,
+            #d4394a 100%
+        );
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #eef4ff;
+    border: 3px solid #173667;
+    box-shadow:
+        0 0 0 4px rgba(46,91,190,.18),
+        0 4px 12px rgba(0,0,0,.35);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #eef4ff;
+    border: 3px solid #173667;
+}
+
+.range-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 7px;
+    color: var(--muted-2);
+    font-size: 9px;
+}
+
+.apply {
+    width: 100%;
+    margin-top: 27px;
+    padding: 15px 16px;
+    border: 0;
+    border-radius: 14px;
+    color: white;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: .75px;
+    cursor: pointer;
+    background:
+        linear-gradient(
+            100deg,
+            #2356c4,
+            #355fae 58%,
+            #d93646
+        );
+    box-shadow:
+        0 10px 28px rgba(34,86,199,.18);
+}
+
+.apply:active {
+    transform: translateY(1px);
+}
+
+.feedback-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 16px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: rgba(14,26,43,.75);
+}
+
+.feedback-label {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 1.1px;
+}
+
+.feedback-value {
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.health-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.health-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(13,24,40,.75);
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.health-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+}
+
+.health-item.online .health-dot {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(56,201,118,.45);
+}
+
+.error {
+    min-height: 15px;
+    margin-top: 11px;
+    color: var(--danger);
+    font-size: 10px;
+    text-align: center;
+}
+
+.footer {
+    padding-top: 28px;
+    text-align: center;
+    color: #42536a;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.footer strong {
+    color: #6386be;
+}
+
+@media (max-width: 390px) {
+    .app {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .metric {
+        min-height: 92px;
+        padding: 13px;
+    }
+
+    .metric-value {
+        font-size: 22px;
+    }
+
+    .manual-main-value {
+        font-size: 50px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="app">
 
-    <div class="brand">
-        <img src="{{ url_for('static', filename='meraled-logo.webp') }}" alt="Meraled">
-        <div class="subtitle">SMART SHOWCASE LIGHTING</div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">SYSTEM STATUS</div>
-        <div class="status" id="system-status">● STARTING</div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">CONTROL MODE</div>
-
-        <div class="mode-buttons">
-            <button class="auto active" id="auto-button" onclick="setAuto()">
-                AUTO
-            </button>
-
-            <button class="manual" id="manual-button" onclick="selectManual()">
-                MANUAL
-            </button>
+    <div class="topbar">
+        <div class="brand">
+            <img
+                src="{{ url_for('static', filename='meraled-logo.webp') }}"
+                alt="Meraled"
+            >
+            <div class="subtitle">
+                SMART SHOWCASE LIGHTING
+            </div>
         </div>
 
-        <div class="control-panel" id="manual-panel">
+        <div class="system-pill">
+            <span class="system-dot" id="system-dot"></span>
+            <span id="system-status">STARTING</span>
+        </div>
+    </div>
 
-            <div class="control-row">
-                <div class="control-label">
-                    <span>CCT</span>
-                    <span>3000–6500 K</span>
+    <div class="mode-switch">
+        <button id="auto-button" class="active" onclick="setAuto()">
+            AUTO
+        </button>
+
+        <button id="manual-button" onclick="selectManual()">
+            MANUAL
+        </button>
+    </div>
+
+
+    <!-- AUTO VIEW -->
+    <main id="auto-view" class="view active">
+
+        <section class="section">
+            <div class="eyebrow">DETECTED PRODUCT</div>
+
+            <div class="product-card">
+                <div class="product-name" id="auto-product">
+                    No Product
+                </div>
+
+                <div class="product-sub">
+                    Meraled adaptive lighting recipe
+                </div>
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="eyebrow">LIGHTING PERFORMANCE</div>
+
+            <div class="metric-grid">
+                <div class="metric metric-target">
+                    <div class="metric-label">TARGET CCT</div>
+                    <div class="metric-value" id="auto-target-cct">--</div>
+                </div>
+
+                <div class="metric metric-measured">
+                    <div class="metric-label">MEASURED CCT</div>
+                    <div class="metric-value" id="auto-measured-cct">--</div>
+                </div>
+
+                <div class="metric metric-target">
+                    <div class="metric-label">TARGET BRIGHTNESS</div>
+                    <div class="metric-value" id="auto-target-brightness">--</div>
+                </div>
+
+                <div class="metric metric-measured">
+                    <div class="metric-label">MEASURED BRIGHTNESS</div>
+                    <div class="metric-value" id="auto-measured-brightness">--</div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="eyebrow">LED OUTPUT</div>
+
+            <div class="output-row">
+                <div class="output-head">
+                    <span class="output-name">Warm Channel</span>
+                    <span class="output-value" id="auto-warm-output">--</span>
+                </div>
+
+                <div class="output-track">
+                    <div class="output-fill warm" id="auto-warm-bar"></div>
+                </div>
+            </div>
+
+            <div class="output-row">
+                <div class="output-head">
+                    <span class="output-name">Cool Channel</span>
+                    <span class="output-value" id="auto-cool-output">--</span>
+                </div>
+
+                <div class="output-track">
+                    <div class="output-fill cool" id="auto-cool-bar"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- MANUAL VIEW -->
+    <main id="manual-view" class="view">
+
+        <section class="section">
+            <div class="eyebrow">MANUAL LIGHTING</div>
+
+            <div class="manual-hero">
+                <div class="manual-kicker">TARGET CCT</div>
+
+                <div class="manual-main-value title-gradient">
+                    <span id="manual-cct-main">4200</span>
+                </div>
+
+                <div class="manual-unit">KELVIN</div>
+            </div>
+
+            <div class="control-block">
+                <div class="control-head">
+                    <span class="control-name">Color Temperature</span>
+                    <span class="control-value">
+                        <span id="manual-cct-value">4200</span> K
+                    </span>
                 </div>
 
                 <input
-                    type="number"
                     id="manual-cct"
+                    type="range"
                     min="3000"
                     max="6500"
                     step="100"
                     value="4200"
-                    disabled
                 >
+
+                <div class="range-scale">
+                    <span>3000 K</span>
+                    <span>6500 K</span>
+                </div>
             </div>
 
-            <div class="control-row">
-                <div class="control-label">
-                    <span>BRIGHTNESS</span>
-                    <span>0–100 %</span>
+            <div class="control-block">
+                <div class="control-head">
+                    <span class="control-name">Brightness</span>
+                    <span class="control-value">
+                        <span id="manual-brightness-value">70</span>%
+                    </span>
                 </div>
 
                 <input
-                    type="number"
                     id="manual-brightness"
+                    type="range"
                     min="0"
                     max="100"
                     step="1"
                     value="70"
-                    disabled
                 >
+
+                <div class="range-scale">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
             </div>
 
-            <button
-                class="apply-button"
-                id="apply-button"
-                onclick="applyManual()"
-                disabled
-            >
-                APPLY MANUAL
+            <button class="apply" onclick="applyManual()">
+                APPLY LIGHTING
             </button>
 
-            <div class="manual-note">
-                MANUAL modda CCT ve parlaklık hedefleri AS7343
-                geri beslemesi ile gerçek zamanlı olarak ayarlanır.
+            <div class="error" id="manual-error"></div>
+        </section>
+
+
+        <section class="section">
+            <div class="eyebrow">LIVE FEEDBACK</div>
+
+            <div class="metric-grid">
+                <div class="metric metric-target">
+                    <div class="metric-label">TARGET CCT</div>
+                    <div class="metric-value" id="manual-target-cct">--</div>
+                </div>
+
+                <div class="metric metric-measured">
+                    <div class="metric-label">MEASURED CCT</div>
+                    <div class="metric-value" id="manual-measured-cct">--</div>
+                </div>
+
+                <div class="metric metric-target">
+                    <div class="metric-label">TARGET BRIGHTNESS</div>
+                    <div class="metric-value" id="manual-target-brightness">--</div>
+                </div>
+
+                <div class="metric metric-measured">
+                    <div class="metric-label">MEASURED BRIGHTNESS</div>
+                    <div class="metric-value" id="manual-measured-brightness">--</div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="eyebrow">LED OUTPUT</div>
+
+            <div class="output-row">
+                <div class="output-head">
+                    <span class="output-name">Warm Channel</span>
+                    <span class="output-value" id="manual-warm-output">--</span>
+                </div>
+
+                <div class="output-track">
+                    <div class="output-fill warm" id="manual-warm-bar"></div>
+                </div>
             </div>
 
-            <div class="error-message" id="manual-error"></div>
+            <div class="output-row">
+                <div class="output-head">
+                    <span class="output-name">Cool Channel</span>
+                    <span class="output-value" id="manual-cool-output">--</span>
+                </div>
 
+                <div class="output-track">
+                    <div class="output-fill cool" id="manual-cool-bar"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+
+    <section class="section">
+        <div class="eyebrow">SYSTEM HEALTH</div>
+
+        <div class="health-list">
+            <div class="health-item" id="health-jetson">
+                <span class="health-dot"></span>
+                Jetson
+            </div>
+
+            <div class="health-item" id="health-esp32">
+                <span class="health-dot"></span>
+                ESP32
+            </div>
+
+            <div class="health-item" id="health-as7343">
+                <span class="health-dot"></span>
+                AS7343
+            </div>
+
+            <div class="health-item" id="health-camera">
+                <span class="health-dot"></span>
+                Camera
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="card">
-        <div class="card-title">DETECTED PRODUCT</div>
-        <div class="product" id="product">No Product</div>
-    </div>
-
-    <div class="grid">
-
-        <div class="card">
-            <div class="card-title">TARGET CCT</div>
-            <div class="value" id="target-cct">--</div>
-            <div class="unit">KELVIN</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">MEASURED CCT</div>
-            <div class="value" id="measured-cct">--</div>
-            <div class="unit">KELVIN</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">TARGET BRIGHTNESS</div>
-            <div class="value" id="target-brightness">--</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">MEASURED BRIGHTNESS</div>
-            <div class="value" id="measured-brightness">--</div>
-        </div>
-
-    </div>
-
-    <div class="card">
-        <div class="card-title">LED OUTPUT</div>
-
-        <div class="row">
-            <span>Warm Channel</span>
-            <strong class="output-value" id="warm-output">--</strong>
-        </div>
-
-        <div class="row">
-            <span>Cool Channel</span>
-            <strong class="output-value" id="cool-output">--</strong>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">SYSTEM HEALTH</div>
-
-        <div class="row">
-            <span>Jetson Orin Nano</span>
-            <span class="ok" id="health-jetson">● OFFLINE</span>
-        </div>
-
-        <div class="row">
-            <span>ESP32-S3</span>
-            <span class="ok" id="health-esp32">● OFFLINE</span>
-        </div>
-
-        <div class="row">
-            <span>AS7343</span>
-            <span class="ok" id="health-as7343">● OFFLINE</span>
-        </div>
-
-        <div class="row">
-            <span>Camera</span>
-            <span class="ok" id="health-camera">● OFFLINE</span>
-        </div>
-    </div>
 
     <div class="footer">
-        Meraled Smart Lighting System
-        <br><br>
-        Developed by <strong>COLLBRAI</strong>
+        MERALED SMART LIGHTING<br><br>
+        DEVELOPED BY <strong>COLLBRAI</strong>
     </div>
 
 </div>
 
 
 <script>
-
 let currentMode = "AUTO";
-let lastState = null;
+
+const cctSlider =
+    document.getElementById("manual-cct");
+
+const brightnessSlider =
+    document.getElementById("manual-brightness");
+
 
 function formatProduct(product) {
     if (!product) return "No Product";
@@ -393,218 +834,261 @@ function formatProduct(product) {
         .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatValue(value, decimals) {
-    if (value === null || value === undefined) return "--";
+
+function formatNumber(value, decimals = 0) {
+    if (value === null || value === undefined) {
+        return "--";
+    }
+
     return Number(value).toFixed(decimals);
 }
 
-function setHealth(id, online) {
-    const el = document.getElementById(id);
 
-    if (online) {
-        el.textContent = "● ONLINE";
-        el.style.color = "#3fb950";
-    } else {
-        el.textContent = "● OFFLINE";
-        el.style.color = "#f85149";
-    }
+function setText(id, value) {
+    document.getElementById(id).textContent = value;
 }
 
-function setStatus(status) {
-    const el = document.getElementById("system-status");
-    const value = status || "UNKNOWN";
 
-    el.textContent = "● " + value;
+function updateManualDisplays() {
+    const cct = Number(cctSlider.value);
+    const brightness = Number(brightnessSlider.value);
 
-    if (value === "TARGET HOLD") {
-        el.style.color = "#3fb950";
-    } else if (value === "AMBIENT LIMIT") {
-        el.style.color = "#f85149";
-    } else if (value === "STANDBY") {
-        el.style.color = "#8b949e";
-    } else if (value === "CONNECTION LOST") {
-        el.style.color = "#f85149";
-    } else {
-        el.style.color = "#d29922";
-    }
+    setText("manual-cct-main", cct);
+    setText("manual-cct-value", cct);
+    setText("manual-brightness-value", brightness);
 }
 
-function setModeUI(mode, requestedMode) {
 
-    const autoButton = document.getElementById("auto-button");
-    const manualButton = document.getElementById("manual-button");
+cctSlider.addEventListener("input", updateManualDisplays);
+brightnessSlider.addEventListener("input", updateManualDisplays);
 
-    const cctInput = document.getElementById("manual-cct");
-    const brightnessInput =
-        document.getElementById("manual-brightness");
 
-    const applyButton =
-        document.getElementById("apply-button");
-
+function setView(mode, requestedMode) {
     const manualActive =
-        mode === "MANUAL" || requestedMode === "MANUAL";
-
-    const autoActive =
-        mode === "AUTO" && requestedMode !== "MANUAL";
-
-    if (autoActive) {
-        autoButton.classList.add("active");
-        manualButton.classList.remove("active");
-    } else {
-        autoButton.classList.remove("active");
-        manualButton.classList.add("active");
-    }
-
-    cctInput.disabled = !manualActive;
-    brightnessInput.disabled = !manualActive;
-    applyButton.disabled = !manualActive;
+        mode === "MANUAL" ||
+        requestedMode === "MANUAL";
 
     currentMode = manualActive ? "MANUAL" : "AUTO";
+
+    document
+        .getElementById("auto-button")
+        .classList.toggle("active", !manualActive);
+
+    document
+        .getElementById("manual-button")
+        .classList.toggle("active", manualActive);
+
+    document
+        .getElementById("auto-view")
+        .classList.toggle("active", !manualActive);
+
+    document
+        .getElementById("manual-view")
+        .classList.toggle("active", manualActive);
 }
 
-function showManualError(message) {
-    const el = document.getElementById("manual-error");
 
-    if (!message) {
-        el.style.display = "none";
-        el.textContent = "";
-        return;
+function setStatus(status) {
+    const label =
+        document.getElementById("system-status");
+
+    const dot =
+        document.getElementById("system-dot");
+
+    const value = status || "UNKNOWN";
+
+    label.textContent = value;
+
+    if (value === "TARGET HOLD") {
+        dot.style.background = "#38c976";
+        label.style.color = "#9de2b9";
     }
-
-    el.style.display = "block";
-    el.textContent = message;
+    else if (value === "STANDBY") {
+        dot.style.background = "#71839b";
+        label.style.color = "#8d9eb4";
+    }
+    else if (value === "AMBIENT LIMIT") {
+        dot.style.background = "#ff5360";
+        label.style.color = "#ff939b";
+    }
+    else {
+        dot.style.background = "#f0b64b";
+        label.style.color = "#f6d48f";
+    }
 }
 
-function selectManual() {
 
-    showManualError("");
+function setHealth(id, online) {
+    const element = document.getElementById(id);
 
-    const cct =
-        Number(document.getElementById("manual-cct").value);
+    element.classList.toggle(
+        "online",
+        Boolean(online)
+    );
+}
 
-    const brightness =
-        Number(document.getElementById("manual-brightness").value);
 
-    if (!Number.isFinite(cct) ||
-        cct < 3000 ||
-        cct > 6500) {
+function setOutput(prefix, warm, cool) {
+    warm = Number(warm || 0);
+    cool = Number(cool || 0);
 
-        showManualError("CCT 3000–6500 K arasında olmalıdır.");
-        return;
-    }
+    setText(
+        prefix + "-warm-output",
+        warm.toFixed(1) + "%"
+    );
 
-    if (!Number.isFinite(brightness) ||
-        brightness < 0 ||
-        brightness > 100) {
+    setText(
+        prefix + "-cool-output",
+        cool.toFixed(1) + "%"
+    );
 
-        showManualError("Brightness 0–100% arasında olmalıdır.");
-        return;
-    }
+    document.getElementById(
+        prefix + "-warm-bar"
+    ).style.width =
+        Math.max(0, Math.min(100, warm)) + "%";
 
-    fetch("/api/manual", {
+    document.getElementById(
+        prefix + "-cool-bar"
+    ).style.width =
+        Math.max(0, Math.min(100, cool)) + "%";
+}
+
+
+function setMetrics(prefix, state) {
+    setText(
+        prefix + "-target-cct",
+        state.target_cct == null
+            ? "--"
+            : formatNumber(state.target_cct, 0) + " K"
+    );
+
+    setText(
+        prefix + "-measured-cct",
+        state.measured_cct == null
+            ? "--"
+            : formatNumber(state.measured_cct, 0) + " K"
+    );
+
+    setText(
+        prefix + "-target-brightness",
+        state.target_brightness == null
+            ? "--"
+            : formatNumber(state.target_brightness, 1) + "%"
+    );
+
+    setText(
+        prefix + "-measured-brightness",
+        state.measured_brightness == null
+            ? "--"
+            : formatNumber(state.measured_brightness, 1) + "%"
+    );
+}
+
+
+function setError(message = "") {
+    setText("manual-error", message);
+}
+
+
+async function postJSON(url, body = null) {
+    const options = {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            target_cct: cct,
-            target_brightness: brightness
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-
-        if (!data.ok) {
-            throw new Error(
-                data.error || "MANUAL isteği başarısız."
-            );
         }
+    };
 
-        showManualError("");
+    if (body !== null) {
+        options.body = JSON.stringify(body);
+    }
 
-        loadState();
+    const response = await fetch(url, options);
+    const data = await response.json();
 
-    })
-    .catch(error => {
-        showManualError(error.message);
-    });
+    if (!response.ok || !data.ok) {
+        throw new Error(
+            data.error || "Request failed"
+        );
+    }
+
+    return data;
 }
 
-function applyManual() {
-    selectManual();
-}
 
-function setAuto() {
-
-    showManualError("");
-
-    fetch("/api/auto", {
-        method: "POST"
-    })
-    .then(response => response.json())
-    .then(data => {
-
-        if (!data.ok) {
-            throw new Error(
-                data.error || "AUTO isteği başarısız."
-            );
-        }
-
-        loadState();
-
-    })
-    .catch(error => {
-        showManualError(error.message);
-    });
-}
-
-async function loadState() {
-
+async function selectManual() {
     try {
+        setError("");
 
-        const response = await fetch("/api/state", {
-            cache: "no-store"
+        await postJSON("/api/manual", {
+            target_cct: Number(cctSlider.value),
+            target_brightness:
+                Number(brightnessSlider.value)
         });
 
+        await loadState();
+    }
+    catch (error) {
+        setError(error.message);
+    }
+}
+
+
+async function applyManual() {
+    await selectManual();
+}
+
+
+async function setAuto() {
+    try {
+        setError("");
+
+        await postJSON("/api/auto");
+
+        await loadState();
+    }
+    catch (error) {
+        setError(error.message);
+    }
+}
+
+
+async function loadState() {
+    try {
+        const response = await fetch(
+            "/api/state",
+            { cache: "no-store" }
+        );
+
         if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
 
         const state = await response.json();
 
-        lastState = state;
-
         setStatus(state.status);
+        setView(state.mode, state.requested_mode);
 
-        setModeUI(
-            state.mode,
-            state.requested_mode
+        setText(
+            "auto-product",
+            formatProduct(state.product)
         );
 
-        document.getElementById("product").textContent =
-            formatProduct(state.product);
+        setMetrics("auto", state);
+        setMetrics("manual", state);
 
-        document.getElementById("target-cct").textContent =
-            formatValue(state.target_cct, 0);
+        setOutput(
+            "auto",
+            state.warm_output,
+            state.cool_output
+        );
 
-        document.getElementById("measured-cct").textContent =
-            formatValue(state.measured_cct, 0);
-
-        document.getElementById("target-brightness").textContent =
-            state.target_brightness == null
-                ? "--"
-                : formatValue(state.target_brightness, 1) + "%";
-
-        document.getElementById("measured-brightness").textContent =
-            state.measured_brightness == null
-                ? "--"
-                : formatValue(state.measured_brightness, 1) + "%";
-
-        document.getElementById("warm-output").textContent =
-            formatValue(state.warm_output, 1) + "%";
-
-        document.getElementById("cool-output").textContent =
-            formatValue(state.cool_output, 1) + "%";
+        setOutput(
+            "manual",
+            state.warm_output,
+            state.cool_output
+        );
 
         setHealth(
             "health-jetson",
@@ -628,34 +1112,38 @@ async function loadState() {
 
         if (
             state.manual_target_cct != null &&
-            document.activeElement !==
-                document.getElementById("manual-cct")
+            document.activeElement !== cctSlider
         ) {
-            document.getElementById("manual-cct").value =
-                Number(state.manual_target_cct).toFixed(0);
+            cctSlider.value =
+                Number(state.manual_target_cct);
         }
 
         if (
             state.manual_target_brightness != null &&
-            document.activeElement !==
-                document.getElementById("manual-brightness")
+            document.activeElement !== brightnessSlider
         ) {
-            document.getElementById("manual-brightness").value =
-                Number(state.manual_target_brightness).toFixed(1);
+            brightnessSlider.value =
+                Number(state.manual_target_brightness);
         }
 
-    } catch (error) {
+        updateManualDisplays();
+    }
+    catch (error) {
+        setText(
+            "system-status",
+            "CONNECTION LOST"
+        );
 
-        const el = document.getElementById("system-status");
-
-        el.textContent = "● CONNECTION LOST";
-        el.style.color = "#f85149";
+        document.getElementById(
+            "system-dot"
+        ).style.background = "#ff5360";
     }
 }
 
+
+updateManualDisplays();
 loadState();
 setInterval(loadState, 1000);
-
 </script>
 
 </body>
