@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraled</title>
+
+<style>
+:root {
+    --bg: #07101b;
+    --blue: #2256c7;
+    --blue-soft: #6d9cff;
+    --red: #e63745;
+    --text: #f3f7fc;
+    --muted: #6f8198;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    overflow: hidden;
+    background:
+        radial-gradient(
+            circle at 20% 0%,
+            rgba(34,86,199,.25),
+            transparent 38%
+        ),
+        radial-gradient(
+            circle at 90% 15%,
+            rgba(230,55,69,.15),
+            transparent 30%
+        ),
+        linear-gradient(
+            180deg,
+            #0a1524,
+            var(--bg)
+        );
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+.splash {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 100svh;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 28px;
+}
+
+.glow {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(47,91,194,.16),
+            rgba(47,91,194,0) 68%
+        );
+
+    filter: blur(4px);
+    pointer-events: none;
+
+    animation: breathe 3.2s ease-in-out infinite;
+}
+
+.logo-wrap {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    animation: enter 800ms cubic-bezier(.2,.8,.2,1);
+}
+
+.logo {
+    width: min(270px, 67vw);
+    display: block;
+}
+
+.tagline {
+    margin-top: 19px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.8px;
+
+    text-align: center;
+}
+
+.loader-wrap {
+    position: absolute;
+    bottom: 74px;
+
+    width: min(210px, 54vw);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    animation: fade 1.2s ease;
+}
+
+.loader {
+    width: 100%;
+    height: 3px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,.06);
+}
+
+.loader-fill {
+    height: 100%;
+    width: 38%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--blue),
+            var(--blue-soft),
+            var(--red)
+        );
+
+    animation: loading 1.55s ease-in-out infinite;
+}
+
+.loading-text {
+    margin-top: 13px;
+
+    color: #4f6178;
+
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+.collbrai {
+    position: absolute;
+    bottom: 27px;
+
+    color: #3e5067;
+
+    font-size: 8px;
+    letter-spacing: 1.25px;
+}
+
+.collbrai strong {
+    color: #6786b4;
+}
+
+@keyframes enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes breathe {
+    0%, 100% {
+        transform: scale(.94);
+        opacity: .65;
+    }
+
+    50% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+}
+
+@keyframes loading {
+    0% {
+        transform: translateX(-110%);
+    }
+
+    55% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(270%);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="splash">
+
+    <div class="glow"></div>
+
+    <div class="logo-wrap">
+
+        <img
+            class="logo"
+            src="{{ url_for('static', filename='meraled-logo.webp') }}"
+            alt="Meraled"
+        >
+
+        <div class="tagline">
+            SMART SHOWCASE LIGHTING
+        </div>
+
+    </div>
+
+    <div class="loader-wrap">
+
+        <div class="loader">
+            <div class="loader-fill"></div>
+        </div>
+
+        <div class="loading-text">
+            INITIALIZING SYSTEM
+        </div>
+
+    </div>
+
+    <div class="collbrai">
+        POWERED BY <strong>COLLBRAI</strong>
+    </div>
+
+</div>
+
+</body>
+</html>

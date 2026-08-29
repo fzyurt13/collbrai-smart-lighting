@@ -14,6 +14,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/splash")
+def splash():
+    return render_template("splash.html")
+
+
 @app.route("/api/state")
 def api_state():
     return jsonify(system_state.get())
