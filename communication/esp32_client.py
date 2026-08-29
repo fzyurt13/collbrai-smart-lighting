@@ -1,4 +1,7 @@
+import json
+import socket
 import time
+
 import serial
 
 
@@ -9,16 +12,53 @@ class ESP32Client:
         port="/dev/ttyACM0",
         baudrate=115200,
         timeout=0.3,
-        startup_delay=1.0
+        startup_delay=1.0,
+        transport="serial",
+        host=None,
+        tcp_port=5000,
+        wifi_timeout=5.0
     ):
         self.port = port
         self.baudrate = int(baudrate)
         self.timeout = float(timeout)
         self.startup_delay = float(startup_delay)
 
+        self.transport = str(
+            transport
+        ).lower()
+
+        self.host = host
+        self.tcp_port = int(
+            tcp_port
+        )
+
+        self.wifi_timeout = float(
+            wifi_timeout
+        )
+
         self.serial = None
 
+        if self.transport not in (
+            "serial",
+            "wifi"
+        ):
+            raise ValueError(
+                "transport must be 'serial' or 'wifi'"
+            )
+
+        if (
+            self.transport == "wifi"
+            and not self.host
+        ):
+            raise ValueError(
+                "host is required for Wi-Fi transport"
+            )
+
     def connect(self):
+        if self.transport == "wifi":
+            # Wi-Fi bağlantısı komut başına açılır.
+            return
+
         if (
             self.serial is not None
             and self.serial.is_open
@@ -35,7 +75,6 @@ class ESP32Client:
             self.startup_delay
         )
 
-        # Açılıştan kalan mesajları temizle
         self.serial.reset_input_buffer()
 
     def close(self):
@@ -45,7 +84,7 @@ class ESP32Client:
 
         self.serial = None
 
-    def _send_command(
+    def _send_command_serial(
         self,
         command,
         wait_response=0.15
@@ -81,6 +120,79 @@ class ESP32Client:
                 )
 
         return responses
+
+    def _send_command_wifi(
+        self,
+        command,
+        wait_response=0.15
+    ):
+        # wait_response seri haberleşme ile API
+        # uyumluluğu için korunuyor.
+        del wait_response
+
+        message = (
+            str(command).strip()
+            + "\n"
+        ).encode("utf-8")
+
+        with socket.create_connection(
+            (
+                self.host,
+                self.tcp_port
+            ),
+            timeout=self.wifi_timeout
+        ) as sock:
+
+            sock.settimeout(
+                self.wifi_timeout
+            )
+
+            sock.sendall(
+                message
+            )
+
+            data = b""
+
+            while b"\n" not in data:
+                chunk = sock.recv(
+                    4096
+                )
+
+                if not chunk:
+                    break
+
+                data += chunk
+
+        responses = []
+
+        for raw_line in data.splitlines():
+            line = raw_line.decode(
+                "utf-8",
+                errors="replace"
+            ).strip()
+
+            if line:
+                responses.append(
+                    line
+                )
+
+        return responses
+
+    def _send_command(
+        self,
+        command,
+        wait_response=0.15
+    ):
+        if self.transport == "wifi":
+            return self._send_command_wifi(
+                command,
+                wait_response=wait_response
+            )
+
+        return self._send_command_serial(
+            command,
+            wait_response=wait_response
+        )
 
     def set_warm_cool(
         self,
@@ -132,6 +244,7 @@ class ESP32Client:
     ):
         warm = float(warm)
         cool = float(cool)
+
         brightness = max(
             0.0,
             min(
@@ -207,16 +320,18 @@ class ESP32Client:
         )
 
     def read_spectral(self):
-        import json
-
         responses = self._send_command(
             "SPECTRAL",
             wait_response=2.0
         )
 
         for line in responses:
-            if line.startswith("SPECTRAL "):
-                payload = line[len("SPECTRAL "):]
+            if line.startswith(
+                "SPECTRAL "
+            ):
+                payload = line[
+                    len("SPECTRAL "):
+                ]
 
                 return json.loads(
                     payload
@@ -229,8 +344,17 @@ class ESP32Client:
     def health(self):
         responses = self.status()
 
-        return {
+        result = {
             "connected": True,
-            "port": self.port,
+            "transport": self.transport,
             "responses": responses
         }
+
+        if self.transport == "wifi":
+            result["host"] = self.host
+            result["tcp_port"] = self.tcp_port
+
+        else:
+            result["port"] = self.port
+
+        return result

@@ -1,8 +1,12 @@
 from machine import Pin, I2C
 from as7343 import AS7343
+from wifi_config import WIFI_SSID, WIFI_PASSWORD, TCP_PORT
 import sys
 import time
 import json
+import network
+import socket
+import select
 
 
 PCA_ADDR = 0x40
@@ -43,7 +47,7 @@ def pca_init():
     i2c.writeto_mem(
         PCA_ADDR,
         0xFE,
-        b'\x05'
+        b'\x0e'
     )
 
     i2c.writeto_mem(
@@ -138,11 +142,69 @@ def read_spectral():
     )
 
 
+
+def connect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+
+    if wlan.isconnected():
+        print("WIFI ALREADY CONNECTED")
+        print("WIFI IP:", wlan.ifconfig()[0])
+        return wlan
+
+    print("WIFI CONNECTING...")
+    wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+
+    timeout_ms = 15000
+    start = time.ticks_ms()
+
+    while not wlan.isconnected():
+        if time.ticks_diff(time.ticks_ms(), start) > timeout_ms:
+            raise RuntimeError("WIFI CONNECTION TIMEOUT")
+
+        time.sleep_ms(250)
+
+    print("WIFI CONNECTED")
+    print("WIFI IP:", wlan.ifconfig()[0])
+
+    return wlan
+
+
+def create_tcp_server():
+    addr = socket.getaddrinfo(
+        "0.0.0.0",
+        TCP_PORT
+    )[0][-1]
+
+    server = socket.socket()
+
+    try:
+        server.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_REUSEADDR,
+            1
+        )
+    except Exception:
+        pass
+
+    server.bind(addr)
+    server.listen(1)
+    server.settimeout(0.05)
+
+    print(
+        "TCP SERVER READY PORT={}".format(
+            TCP_PORT
+        )
+    )
+
+    return server
+
+
 def process_command(line):
     line = line.strip()
 
     if not line:
-        return
+        return None
 
     parts = line.split()
 
@@ -155,32 +217,36 @@ def process_command(line):
             warm = float(parts[1])
             cool = float(parts[3])
 
-            set_warm_cool(
+            set_channel(CH_WARM, warm)
+            set_channel(CH_COOL, cool)
+
+            return "OK WARM={:.1f} COOL={:.1f}".format(
                 warm,
                 cool
             )
 
         elif line.upper() == "OFF":
-            all_off()
+            set_channel(CH_WARM, 0)
+            set_channel(CH_COOL, 0)
+
+            return "OK WARM=0.0 COOL=0.0"
 
         elif line.upper() == "STATUS":
-            print(
-                "STATUS READY PCA=0x40 AS7343=0x39"
-            )
+            return "STATUS READY PCA=0x40 AS7343=0x39"
 
         elif line.upper() == "SPECTRAL":
-            read_spectral()
+            data = sensor.read_channels()
 
-        else:
-            print(
-                "ERROR COMMAND"
+            return (
+                "SPECTRAL " +
+                json.dumps(data)
             )
 
+        else:
+            return "ERROR COMMAND"
+
     except Exception as exc:
-        print(
-            "ERROR",
-            exc
-        )
+        return "ERROR {}".format(exc)
 
 
 pca_init()
@@ -191,12 +257,90 @@ print(
     "COLLBRAI ESP32 LIGHT CONTROLLER READY"
 )
 
+wlan = connect_wifi()
+tcp_server = create_tcp_server()
+
+client_socket = None
+client_buffer = b""
+
+# USB seri portu bloklamadan kontrol et
+stdin_poll = select.poll()
+stdin_poll.register(
+    sys.stdin,
+    select.POLLIN
+)
+
 while True:
     try:
-        line = sys.stdin.readline()
+        # USB Serial komutlari calismaya devam eder,
+        # ancak Wi-Fi/TCP dongusunu bloklamaz.
+        if stdin_poll.poll(0):
+            line = sys.stdin.readline()
 
-        if line:
-            process_command(line)
+            if line:
+                response = process_command(line)
+
+                if response:
+                    print(response)
+
+        # Yeni TCP istemcisi kabul et
+        if client_socket is None:
+            try:
+                client_socket, client_addr = tcp_server.accept()
+                client_socket.settimeout(0.05)
+                client_buffer = b""
+
+                print(
+                    "TCP CLIENT CONNECTED",
+                    client_addr
+                )
+
+            except OSError:
+                pass
+
+        # TCP komutlarini oku
+        if client_socket is not None:
+            try:
+                data = client_socket.recv(256)
+
+                if not data:
+                    client_socket.close()
+                    client_socket = None
+                    client_buffer = b""
+                    print("TCP CLIENT DISCONNECTED")
+
+                else:
+                    client_buffer += data
+
+                    while b"\n" in client_buffer:
+                        raw_line, client_buffer = client_buffer.split(
+                            b"\n",
+                            1
+                        )
+
+                        command = raw_line.decode(
+                            "utf-8"
+                        ).strip()
+
+                        if command:
+                            print(
+                                "TCP COMMAND:",
+                                command
+                            )
+
+                            response = process_command(
+                                command
+                            )
+
+                            if response:
+                                client_socket.send(
+                                    (
+                                        response + "\n"
+                                    ).encode("utf-8")
+                                )
+
+            except OSError:
+                pass
 
     except Exception as exc:
         print(

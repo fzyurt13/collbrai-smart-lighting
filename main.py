@@ -122,7 +122,53 @@ def parse_args():
         help="Target brightness percentage (0-100)"
     )
 
+    parser.add_argument(
+        "--esp32-transport",
+        type=str,
+        default="serial",
+        choices=["serial", "wifi"],
+        help="ESP32 communication transport"
+    )
+
+    parser.add_argument(
+        "--esp32-host",
+        type=str,
+        default=None,
+        help="ESP32 IP address for Wi-Fi transport"
+    )
+
+    parser.add_argument(
+        "--esp32-tcp-port",
+        type=int,
+        default=5000,
+        help="ESP32 TCP server port"
+    )
+
     return parser.parse_args()
+
+
+def create_esp32_client_from_args(args):
+    if args.esp32_transport == "wifi":
+        if not args.esp32_host:
+            raise ValueError(
+                "--esp32-host is required when "
+                "--esp32-transport wifi is used"
+            )
+
+        return ESP32Client(
+            transport="wifi",
+            host=args.esp32_host,
+            tcp_port=args.esp32_tcp_port,
+            wifi_timeout=5.0
+        )
+
+    return ESP32Client(
+        port="/dev/ttyACM0",
+        baudrate=115200,
+        timeout=0.3,
+        startup_delay=1.0,
+        transport="serial"
+    )
 
 
 def run_mock(
@@ -572,7 +618,7 @@ def run_mock(
     print("Control loop finished after monitoring period.")
 
 
-def run_real(target_cct, target_brightness):
+def run_real(target_cct, target_brightness, args):
     print("MODE: REAL")
     print(
         "TARGET: {:.0f} K / {:.1f}% brightness".format(
@@ -581,11 +627,8 @@ def run_real(target_cct, target_brightness):
         )
     )
 
-    esp32 = ESP32Client(
-        port="/dev/ttyACM0",
-        baudrate=115200,
-        timeout=0.3,
-        startup_delay=1.0
+    esp32 = create_esp32_client_from_args(
+        args
     )
 
     spectral_estimator = SpectralRatioEstimator()
@@ -920,20 +963,17 @@ def smooth_set_warm_cool(
         time.sleep(delay)
 
 
-def run_continuous_real():
+def run_continuous_real(args):
     import cv2
     import numpy as np
 
-    STANDBY_LEVEL = 1.0
+    STANDBY_LEVEL = 2.0
     ANALYSIS_LEVEL = 10.0
     PRESENCE_THRESHOLD = 15.0
     REQUIRED_HITS = 3
 
-    esp32 = ESP32Client(
-        port="/dev/ttyACM0",
-        baudrate=115200,
-        timeout=0.3,
-        startup_delay=1.0
+    esp32 = create_esp32_client_from_args(
+        args
     )
 
     camera = None
@@ -1485,8 +1525,13 @@ def run_continuous_real():
                 REMOVAL_STD_THRESHOLD = 15.0
                 REMOVAL_REQUIRED_HITS = 2
 
+                # Urun vitrinde kaldigi surece periyodik
+                # AS7343 closed-loop kontrol araligi.
+                PERIODIC_FEEDBACK_INTERVAL = 5.0
+
                 removal_hits = 0
                 removal_monitor_start = time.time()
+                last_periodic_feedback = time.monotonic()
 
                 while True:
                     frame = camera.read()
@@ -1554,6 +1599,170 @@ def run_continuous_real():
 
                         break
 
+                    # Urun hala vitrindeyse belirli araliklarla
+                    # AS7343 ile CCT ve parlaklik kontrolu yap.
+                    periodic_now = time.monotonic()
+
+                    if (
+                        periodic_now - last_periodic_feedback
+                        >= PERIODIC_FEEDBACK_INTERVAL
+                    ):
+                        last_periodic_feedback = periodic_now
+
+                        print()
+                        print("-" * 60)
+                        print("PERIODIC AS7343 CHECK")
+                        print("-" * 60)
+
+                        try:
+                            spectral = esp32.read_spectral()
+
+                            estimate = spectral_estimator.estimate(
+                                spectral
+                            )
+
+                            measured_cct = estimate[
+                                "estimated_cct"
+                            ]
+
+                            measured_brightness = (
+                                brightness_estimator.estimate(
+                                    spectral["VIS"],
+                                    measured_cct
+                                )
+                            )
+
+                            print(
+                                "TARGET             : "
+                                "{:.0f} K / {:.1f}%".format(
+                                    float(target_cct),
+                                    float(target_brightness)
+                                )
+                            )
+
+                            print(
+                                "MEASURED CCT       : "
+                                "{:.0f} K".format(
+                                    measured_cct
+                                )
+                            )
+
+                            print(
+                                "MEASURED BRIGHTNESS: "
+                                "{:.1f}%".format(
+                                    measured_brightness
+                                )
+                            )
+
+                            print(
+                                "CCT ERROR          : "
+                                "{:+.0f} K".format(
+                                    float(target_cct)
+                                    - measured_cct
+                                )
+                            )
+
+                            print(
+                                "BRIGHTNESS ERROR   : "
+                                "{:+.1f}%".format(
+                                    float(target_brightness)
+                                    - measured_brightness
+                                )
+                            )
+
+                            cct_result = (
+                                cct_feedback.calculate(
+                                    target_cct=target_cct,
+                                    measured_cct=measured_cct,
+                                    current_cool=command_cool
+                                )
+                            )
+
+                            brightness_result = (
+                                brightness_feedback.calculate(
+                                    target_brightness=(
+                                        target_brightness
+                                    ),
+                                    measured_brightness=(
+                                        measured_brightness
+                                    ),
+                                    current_brightness=(
+                                        command_brightness
+                                    )
+                                )
+                            )
+
+                            if (
+                                cct_result["locked"]
+                                and brightness_result["locked"]
+                            ):
+                                print(
+                                    "PERIODIC STATUS    : "
+                                    "TARGET HOLD"
+                                )
+
+                            else:
+                                command_cool = (
+                                    cct_result["new_cool"]
+                                )
+
+                                command_brightness = (
+                                    brightness_result[
+                                        "new_brightness"
+                                    ]
+                                )
+
+                                command_warm = (
+                                    100.0 - command_cool
+                                )
+
+                                new_warm_output = (
+                                    command_warm
+                                    * command_brightness
+                                    / 100.0
+                                )
+
+                                new_cool_output = (
+                                    command_cool
+                                    * command_brightness
+                                    / 100.0
+                                )
+
+                                print(
+                                    "PERIODIC CORRECTION: "
+                                    "WARM {:.2f}% / COOL {:.2f}%".format(
+                                        new_warm_output,
+                                        new_cool_output
+                                    )
+                                )
+
+                                esp32.set_warm_cool(
+                                    new_warm_output,
+                                    new_cool_output
+                                )
+
+                                current_warm = (
+                                    new_warm_output
+                                )
+
+                                current_cool = (
+                                    new_cool_output
+                                )
+
+                                print(
+                                    "PERIODIC STATUS    : "
+                                    "CORRECTION APPLIED"
+                                )
+
+                        except Exception as exc:
+                            print(
+                                "PERIODIC AS7343 ERROR:"
+                            )
+                            print(exc)
+
+                        print("-" * 60)
+                        print()
+
                     time.sleep(0.1)
 
                 continue
@@ -1610,7 +1819,7 @@ def main():
             print("ERROR: --continuous requires --camera imx219")
             return
 
-        run_continuous_real()
+        run_continuous_real(args)
         return
 
     profile_manager = ProfileManager()
@@ -1631,11 +1840,8 @@ def main():
                 prediction = classifier.predict()
 
             else:
-                analysis_esp32 = ESP32Client(
-                    port="/dev/ttyACM0",
-                    baudrate=115200,
-                    timeout=0.3,
-                    startup_delay=1.0
+                analysis_esp32 = create_esp32_client_from_args(
+                    args
                 )
 
                 try:
@@ -1892,7 +2098,8 @@ def main():
     elif MODE == "real":
         run_real(
             target_cct=target_cct,
-            target_brightness=target_brightness
+            target_brightness=target_brightness,
+            args=args
         )
 
     else:
