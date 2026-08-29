@@ -211,7 +211,7 @@ class ESP32Client:
 
         responses = self._send_command(
             "SPECTRAL",
-            wait_response=0.5
+            wait_response=2.0
         )
 
         for line in responses:

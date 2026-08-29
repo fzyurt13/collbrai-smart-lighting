@@ -69,7 +69,7 @@ class AS7343:
             b'\x03'
         )
 
-        time.sleep_ms(200)
+        time.sleep_ms(1500)
 
         raw = self.i2c.readfrom_mem(
             self.address,

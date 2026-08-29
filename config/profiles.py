@@ -62,4 +62,31 @@ PROFILES = {
         "ambient_compensation": True,
         "recipe_version": "1.0"
     }
+,
+    "gold_like": {
+        "name": "Gold Like - MVP",
+        "target_cct": 3500.0,
+        "target_brightness": 80.0,
+        "min_cct": 3300.0,
+        "max_cct": 3800.0,
+        "min_brightness": 70.0,
+        "max_brightness": 90.0,
+        "confidence_threshold": 0.80,
+        "ambient_compensation": True,
+        "recipe_version": "mvp-1.0"
+    },
+
+    "diamond_like": {
+        "name": "Diamond Like - MVP",
+        "target_cct": 6000.0,
+        "target_brightness": 90.0,
+        "min_cct": 5700.0,
+        "max_cct": 6200.0,
+        "min_brightness": 80.0,
+        "max_brightness": 100.0,
+        "confidence_threshold": 0.80,
+        "ambient_compensation": True,
+        "recipe_version": "mvp-1.0"
+    }
+
 }

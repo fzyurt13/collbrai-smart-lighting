@@ -15,19 +15,19 @@ class SpectralRatioEstimator:
     COOL_POINTS = [0.0, 25.0, 50.0, 75.0, 100.0]
 
     R1_POINTS = [
-        0.101,
-        0.149,
-        0.208,
-        0.279,
-        0.392
+        0.2668,
+        0.3461,
+        0.4675,
+        0.5329,
+        0.6801
     ]
 
     R2_POINTS = [
-        0.159,
-        0.233,
-        0.327,
-        0.447,
-        0.639
+        0.5466,
+        0.6444,
+        0.7516,
+        0.8811,
+        1.0679
     ]
 
     def _interpolate(self, value, x_points):
@@ -79,11 +79,10 @@ class SpectralRatioEstimator:
             self.R2_POINTS
         )
 
-        # Ilk versiyon:
-        # iki spektral gostergenin esit agirlikli ortalamasi
-        cool_percent = (
-            cool_r1 + cool_r2
-        ) / 2.0
+        # R1 objesiz kalibrasyonda monoton olmadigi icin
+        # MVP CCT tahmini R2 (F3_475 / F7_690) uzerinden yapilir.
+        # R1 diagnostik amacla hesaplanmaya devam eder.
+        cool_percent = cool_r2
 
         cool_percent = max(
             0.0,
