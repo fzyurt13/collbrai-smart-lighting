@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meraled Smart Lighting</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0d1117;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 20px 16px 28px;
+        }
+
+        .brand {
+            text-align: center;
+            padding: 14px 0 24px;
+        }
+
+        .brand img {
+            width: 220px;
+            max-width: 75%;
+            height: auto;
+        }
+
+        .subtitle {
+            margin-top: 10px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #8b949e;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1.2px;
+            color: #8b949e;
+            margin-bottom: 9px;
+        }
+
+        .status {
+            font-size: 22px;
+            font-weight: bold;
+            color: #3fb950;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .auto {
+            background: #b7191d;
+            color: #ffffff;
+        }
+
+        .manual {
+            background: #30363d;
+            color: #ffffff;
+        }
+
+        .product {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .unit {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .ok {
+            color: #3fb950;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            padding-top: 18px;
+            color: #6e7681;
+            font-size: 11px;
+        }
+
+        .footer strong {
+            color: #9da7b3;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="brand">
+        <img src="{{ url_for('static', filename='meraled-logo.webp') }}" alt="Meraled">
+        <div class="subtitle">SMART SHOWCASE LIGHTING</div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">SYSTEM STATUS</div>
+        <div class="status" id="system-status">● STARTING</div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">CONTROL MODE</div>
+
+        <div class="mode-buttons">
+            <button class="auto" id="auto-button">AUTO</button>
+            <button class="manual" id="manual-button">MANUAL</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">DETECTED PRODUCT</div>
+        <div class="product" id="product">No Product</div>
+    </div>
+
+    <div class="grid">
+
+        <div class="card">
+            <div class="card-title">TARGET CCT</div>
+            <div class="value" id="target-cct">--</div>
+            <div class="unit">KELVIN</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">MEASURED CCT</div>
+            <div class="value" id="measured-cct">--</div>
+            <div class="unit">KELVIN</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">TARGET BRIGHTNESS</div>
+            <div class="value" id="target-brightness">--</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">MEASURED BRIGHTNESS</div>
+            <div class="value" id="measured-brightness">--</div>
+        </div>
+
+    </div>
+
+    <div class="card">
+        <div class="card-title">LED OUTPUT</div>
+
+        <div class="row">
+            <span>Warm Channel</span>
+            <strong id="warm-output">--</strong>
+        </div>
+
+        <div class="row">
+            <span>Cool Channel</span>
+            <strong id="cool-output">--</strong>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">SYSTEM HEALTH</div>
+
+        <div class="row">
+            <span>Jetson Orin Nano</span>
+            <span class="ok" id="health-jetson">● OFFLINE</span>
+        </div>
+
+        <div class="row">
+            <span>ESP32-S3</span>
+            <span class="ok" id="health-esp32">● OFFLINE</span>
+        </div>
+
+        <div class="row">
+            <span>AS7343</span>
+            <span class="ok" id="health-as7343">● OFFLINE</span>
+        </div>
+
+        <div class="row">
+            <span>Camera</span>
+            <span class="ok" id="health-camera">● OFFLINE</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        Meraled Smart Lighting System
+        <br><br>
+        Developed by <strong>COLLBRAI</strong>
+    </div>
+
+</div>
+
+
+<script>
+function formatProduct(product) {
+    if (!product) return "No Product";
+
+    return product
+        .replaceAll("_", " ")
+        .replace(/\\b\\w/g, c => c.toUpperCase());
+}
+
+function formatValue(value, decimals) {
+    if (value === null || value === undefined) return "--";
+    return Number(value).toFixed(decimals);
+}
+
+function setHealth(id, online) {
+    const el = document.getElementById(id);
+
+    if (online) {
+        el.textContent = "● ONLINE";
+        el.style.color = "#3fb950";
+    } else {
+        el.textContent = "● OFFLINE";
+        el.style.color = "#f85149";
+    }
+}
+
+function setStatus(status) {
+    const el = document.getElementById("system-status");
+    const value = status || "UNKNOWN";
+
+    el.textContent = "● " + value;
+
+    if (value === "TARGET HOLD") {
+        el.style.color = "#3fb950";
+    } else if (value === "AMBIENT LIMIT") {
+        el.style.color = "#f85149";
+    } else if (value === "STANDBY") {
+        el.style.color = "#8b949e";
+    } else {
+        el.style.color = "#d29922";
+    }
+}
+
+async function loadState() {
+    try {
+        const response = await fetch("/api/state", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const state = await response.json();
+
+        setStatus(state.status);
+
+        document.getElementById("product").textContent =
+            formatProduct(state.product);
+
+        document.getElementById("target-cct").textContent =
+            formatValue(state.target_cct, 0);
+
+        document.getElementById("measured-cct").textContent =
+            formatValue(state.measured_cct, 0);
+
+        document.getElementById("target-brightness").textContent =
+            state.target_brightness == null
+                ? "--"
+                : formatValue(state.target_brightness, 1) + "%";
+
+        document.getElementById("measured-brightness").textContent =
+            state.measured_brightness == null
+                ? "--"
+                : formatValue(state.measured_brightness, 1) + "%";
+
+        document.getElementById("warm-output").textContent =
+            formatValue(state.warm_output, 1) + "%";
+
+        document.getElementById("cool-output").textContent =
+            formatValue(state.cool_output, 1) + "%";
+
+        setHealth(
+            "health-jetson",
+            state.health && state.health.jetson
+        );
+
+        setHealth(
+            "health-esp32",
+            state.health && state.health.esp32
+        );
+
+        setHealth(
+            "health-as7343",
+            state.health && state.health.as7343
+        );
+
+        setHealth(
+            "health-camera",
+            state.health && state.health.camera
+        );
+
+    } catch (error) {
+        const el = document.getElementById("system-status");
+        el.textContent = "● CONNECTION LOST";
+        el.style.color = "#f85149";
+    }
+}
+
+loadState();
+setInterval(loadState, 1000);
+</script>
+
+</body>
+</html>

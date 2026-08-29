@@ -1,5 +1,9 @@
 import argparse
 import time
+import threading
+
+from web.app import run_web_server
+from web.system_state import system_state
 
 from config.settings import (
     MODE,
@@ -1009,10 +1013,24 @@ def run_continuous_real(args):
             STANDBY_LEVEL
         )
 
+        system_state.update(
+            status="STANDBY",
+            warm_output=STANDBY_LEVEL,
+            cool_output=STANDBY_LEVEL
+        )
+        system_state.update_health(
+            esp32=True,
+            as7343=True
+        )
+
         time.sleep(5)
 
         camera = create_camera("imx219")
         camera.open()
+
+        system_state.update_health(
+            camera=True
+        )
 
         time.sleep(5)
 
@@ -1234,6 +1252,13 @@ def run_continuous_real(args):
                             profile["target_brightness"]
                         )
 
+                        system_state.update(
+                            status="PRODUCT DETECTED",
+                            product=detected_class,
+                            target_cct=target_cct,
+                            target_brightness=target_brightness
+                        )
+
                         recipe_output = calculate_recipe_output(
                             target_cct=target_cct,
                             target_brightness=target_brightness
@@ -1280,6 +1305,12 @@ def run_continuous_real(args):
 
                         current_warm = target_warm_output
                         current_cool = target_cool_output
+
+                        system_state.update(
+                            status="ADJUSTING",
+                            warm_output=current_warm,
+                            cool_output=current_cool
+                        )
 
                         print(
                             "RECIPE NOMINAL LEVEL REACHED"
@@ -1392,6 +1423,14 @@ def run_continuous_real(args):
                                 )
                             )
 
+                            system_state.update(
+                                status="ADJUSTING",
+                                measured_cct=measured_cct,
+                                measured_brightness=measured_brightness,
+                                warm_output=current_warm,
+                                cool_output=current_cool
+                            )
+
                             print(
                                 "MEASURED CCT       : "
                                 "{:.0f} K".format(
@@ -1490,6 +1529,14 @@ def run_continuous_real(args):
                             ):
                                 feedback_locked = True
 
+                                system_state.update(
+                                    status="TARGET HOLD",
+                                    measured_cct=measured_cct,
+                                    measured_brightness=measured_brightness,
+                                    warm_output=current_warm,
+                                    cool_output=current_cool
+                                )
+
                                 print()
                                 print(
                                     "STATUS: DUAL TARGET LOCKED"
@@ -1587,6 +1634,17 @@ def run_continuous_real(args):
                         current_warm = STANDBY_LEVEL
                         current_cool = STANDBY_LEVEL
 
+                        system_state.update(
+                            status="STANDBY",
+                            product=None,
+                            target_cct=None,
+                            measured_cct=None,
+                            target_brightness=None,
+                            measured_brightness=None,
+                            warm_output=STANDBY_LEVEL,
+                            cool_output=STANDBY_LEVEL
+                        )
+
                         print("STANDBY LEVEL REACHED")
 
                         presence_hits = 0
@@ -1630,6 +1688,11 @@ def run_continuous_real(args):
                                     spectral["VIS"],
                                     measured_cct
                                 )
+                            )
+
+                            system_state.update(
+                                measured_cct=measured_cct,
+                                measured_brightness=measured_brightness
                             )
 
                             print(
@@ -1696,6 +1759,12 @@ def run_continuous_real(args):
                                 cct_result["locked"]
                                 and brightness_result["locked"]
                             ):
+                                system_state.update(
+                                    status="TARGET HOLD",
+                                    warm_output=current_warm,
+                                    cool_output=current_cool
+                                )
+
                                 print(
                                     "PERIODIC STATUS    : "
                                     "TARGET HOLD"
@@ -1749,10 +1818,40 @@ def run_continuous_real(args):
                                     new_cool_output
                                 )
 
-                                print(
-                                    "PERIODIC STATUS    : "
-                                    "CORRECTION APPLIED"
+                                system_state.update(
+                                    status="ADJUSTING",
+                                    warm_output=current_warm,
+                                    cool_output=current_cool,
+                                    measured_cct=measured_cct,
+                                    measured_brightness=measured_brightness
                                 )
+
+                                ambient_limit = (
+                                    new_warm_output <= 0.01
+                                    and new_cool_output <= 0.01
+                                    and measured_brightness
+                                    > float(target_brightness) + 2.0
+                                )
+
+                                if ambient_limit:
+                                    system_state.update(
+                                        status="AMBIENT LIMIT"
+                                    )
+
+                                    print(
+                                        "PERIODIC STATUS    : "
+                                        "AMBIENT LIMIT"
+                                    )
+                                    print(
+                                        "TARGET NOT REACHABLE: "
+                                        "EXTERNAL LIGHT EXCEEDS "
+                                        "CONTROLLABLE RANGE"
+                                    )
+                                else:
+                                    print(
+                                        "PERIODIC STATUS    : "
+                                        "CORRECTION APPLIED"
+                                    )
 
                         except Exception as exc:
                             print(
@@ -1818,6 +1917,23 @@ def main():
         if args.camera != "imx219":
             print("ERROR: --continuous requires --camera imx219")
             return
+
+        system_state.update(
+            status="STARTING",
+            mode="AUTO"
+        )
+
+        web_thread = threading.Thread(
+            target=run_web_server,
+            name="MeraledWebServer",
+            daemon=True
+        )
+        web_thread.start()
+
+        print()
+        print("WEB PANEL STARTED")
+        print("PORT      : 8080")
+        print()
 
         run_continuous_real(args)
         return
