@@ -908,19 +908,27 @@ def linear_fade_warm_cool(
             + (target_cool - start_cool) * ratio
         )
 
-        esp32.set_warm_cool(
+        if not safe_set_warm_cool(
+            esp32,
             warm,
             cool
-        )
+        ):
+            print("FADE ABORTED: ESP32 unavailable")
+            return False
 
-        # ESP32 serial command time is included in elapsed time.
+        # ESP32 command time is included in elapsed time.
         # This sleep only limits unnecessary update frequency.
         time.sleep(0.02)
 
-    esp32.set_warm_cool(
+    if not safe_set_warm_cool(
+        esp32,
         target_warm,
         target_cool
-    )
+    ):
+        print("FADE FINAL COMMAND FAILED: ESP32 unavailable")
+        return False
+
+    return True
 
 
 def smooth_set_warm_cool(
@@ -959,12 +967,182 @@ def smooth_set_warm_cool(
             + (target_cool - start_cool) * ratio
         )
 
-        esp32.set_warm_cool(
+        if not safe_set_warm_cool(
+            esp32,
             warm,
             cool
-        )
+        ):
+            print("SMOOTH FADE ABORTED: ESP32 unavailable")
+            return False
 
         time.sleep(delay)
+
+    return True
+
+
+
+
+def manual_smooth_transition(
+    esp32,
+    start_warm,
+    start_cool,
+    target_warm,
+    target_cool,
+    duration=0.8
+):
+    import math
+
+    start_warm = float(start_warm)
+    start_cool = float(start_cool)
+    target_warm = float(target_warm)
+    target_cool = float(target_cool)
+
+    duration = max(float(duration), 0.05)
+    start_time = time.monotonic()
+
+    current_warm = start_warm
+    current_cool = start_cool
+
+    while True:
+        # AUTO veya yeni MANUAL hedefi geldiyse mevcut hareketi kes.
+        state = system_state.get()
+
+        if state.get("requested_mode") != "MANUAL":
+            return current_warm, current_cool, True
+
+        requested_cct = state.get("manual_target_cct")
+        requested_brightness = state.get(
+            "manual_target_brightness"
+        )
+
+        elapsed = time.monotonic() - start_time
+
+        if elapsed >= duration:
+            break
+
+        t = elapsed / duration
+
+        # Cosine ease-in/ease-out:
+        # yumusak baslangic -> hizli orta -> yumusak bitis
+        ratio = 0.5 - 0.5 * math.cos(math.pi * t)
+
+        warm = (
+            start_warm
+            + (target_warm - start_warm) * ratio
+        )
+
+        cool = (
+            start_cool
+            + (target_cool - start_cool) * ratio
+        )
+
+        if not safe_set_warm_cool(
+            esp32,
+            warm,
+            cool
+        ):
+            print("MANUAL TRANSITION ABORTED: ESP32 unavailable")
+            return current_warm, current_cool, True
+
+        current_warm = warm
+        current_cool = cool
+
+        # Web panelinde gercek uygulanmakta olan PWM'i goster.
+        system_state.update(
+            warm_output=warm,
+            cool_output=cool
+        )
+
+        # Hedef transition basladiktan sonra degistiyse kes.
+        current_target = (
+            requested_cct,
+            requested_brightness
+        )
+
+        active_target = (
+            state.get("target_cct"),
+            state.get("target_brightness")
+        )
+
+        if (
+            requested_cct is not None
+            and requested_brightness is not None
+            and current_target != active_target
+        ):
+            return current_warm, current_cool, True
+
+        time.sleep(0.02)
+
+    if not safe_set_warm_cool(
+        esp32,
+        target_warm,
+        target_cool
+    ):
+        print("MANUAL FINAL COMMAND FAILED: ESP32 unavailable")
+        return current_warm, current_cool, True
+
+    system_state.update(
+        warm_output=target_warm,
+        cool_output=target_cool
+    )
+
+    return target_warm, target_cool, False
+
+
+
+def update_esp32_live_health(esp32):
+    """
+    ESP32 ve AS7343 durumunu gercek HEALTH komutundan gunceller.
+    Basarili sorguda True/False degerlerini,
+    haberlesme hatasinda ESP32=False ve AS7343=False yazar.
+    """
+    try:
+        health = esp32.health()
+
+        esp32_ok = bool(health.get("esp32", False))
+        as7343_ok = bool(health.get("as7343", False))
+
+        system_state.update_health(
+            esp32=esp32_ok,
+            as7343=as7343_ok
+        )
+
+        return True
+
+    except Exception as exc:
+        system_state.update_health(
+            esp32=False,
+            as7343=False
+        )
+
+        print("LIVE HEALTH ERROR:", exc)
+        return False
+
+
+
+
+def safe_set_warm_cool(esp32, warm, cool):
+    """
+    LED komutunu guvenli gonderir.
+    ESP32 haberlesmesi koparsa ana programi kapatmaz.
+    """
+    try:
+        esp32.set_warm_cool(warm, cool)
+
+        system_state.update_health(
+            esp32=True
+        )
+
+        return True
+
+    except Exception as exc:
+        system_state.update_health(
+            esp32=False,
+            as7343=False
+        )
+
+        print("ESP32 LED COMMAND ERROR:", exc)
+        return False
 
 
 
@@ -1000,24 +1178,35 @@ def run_manual_control(
     last_feedback = 0.0
     feedback_interval = 5.0
 
+    last_health_check = 0.0
+    health_interval = 3.0
+
     while True:
+        now = time.monotonic()
+
+        if now - last_health_check >= health_interval:
+            update_esp32_live_health(esp32)
+            last_health_check = now
+
         state = system_state.get()
 
         if state.get("requested_mode") != "MANUAL":
             print()
             print("MANUAL MODE EXIT REQUESTED")
 
-            linear_fade_warm_cool(
-                esp32=esp32,
-                start_warm=current_warm,
-                start_cool=current_cool,
-                target_warm=standby_level,
-                target_cool=standby_level,
-                duration=5.0
+            standby_ok = safe_set_warm_cool(
+                esp32,
+                standby_level,
+                standby_level
             )
 
-            current_warm = standby_level
-            current_cool = standby_level
+            if standby_ok:
+                current_warm = standby_level
+                current_cool = standby_level
+            else:
+                print(
+                    "AUTO RESTORE LIGHT SKIPPED: ESP32 unavailable"
+                )
 
             system_state.update(
                 mode="AUTO",
@@ -1096,24 +1285,29 @@ def run_manual_control(
                 target_brightness=target_brightness
             )
 
-            linear_fade_warm_cool(
-                esp32=esp32,
-                start_warm=current_warm,
-                start_cool=current_cool,
-                target_warm=target_warm_output,
-                target_cool=target_cool_output,
-                duration=3.0
+            current_warm, current_cool, interrupted = (
+                manual_smooth_transition(
+                    esp32=esp32,
+                    start_warm=current_warm,
+                    start_cool=current_cool,
+                    target_warm=target_warm_output,
+                    target_cool=target_cool_output,
+                    duration=0.8
+                )
             )
 
-            current_warm = target_warm_output
-            current_cool = target_cool_output
+            if interrupted:
+                continue
 
             system_state.update(
+                status="TARGET HOLD",
                 warm_output=current_warm,
                 cool_output=current_cool
             )
 
-            last_feedback = 0.0
+            # Yeni MANUAL hedefinden hemen sonra AS7343 okumasi baslatma.
+            # Kullanici slider/AUTO komutlari bu surede onceliklidir.
+            last_feedback = time.monotonic()
 
         now = time.monotonic()
 
@@ -1220,13 +1414,20 @@ def run_manual_control(
                 / 100.0
             )
 
-            esp32.set_warm_cool(
-                new_warm_output,
-                new_cool_output
+            # Apply AS7343 correction with an interruptible smooth transition.
+            current_warm, current_cool, interrupted = (
+                manual_smooth_transition(
+                    esp32=esp32,
+                    start_warm=current_warm,
+                    start_cool=current_cool,
+                    target_warm=new_warm_output,
+                    target_cool=new_cool_output,
+                    duration=0.6
+                )
             )
 
-            current_warm = new_warm_output
-            current_cool = new_cool_output
+            if interrupted:
+                continue
 
             ambient_limit = (
                 current_warm <= 0.01
@@ -1305,20 +1506,27 @@ def run_continuous_real(args):
         )
         print()
 
-        esp32.set_warm_cool(
+        standby_ok = safe_set_warm_cool(
+            esp32,
             STANDBY_LEVEL,
             STANDBY_LEVEL
         )
 
+        if standby_ok:
+            current_warm = STANDBY_LEVEL
+            current_cool = STANDBY_LEVEL
+        else:
+            print(
+                "INITIAL STANDBY LIGHT SKIPPED: ESP32 unavailable"
+            )
+
         system_state.update(
             status="STANDBY",
-            warm_output=STANDBY_LEVEL,
-            cool_output=STANDBY_LEVEL
+            warm_output=current_warm,
+            cool_output=current_cool
         )
-        system_state.update_health(
-            esp32=True,
-            as7343=True
-        )
+
+        update_esp32_live_health(esp32)
 
         time.sleep(5)
 
@@ -1365,7 +1573,83 @@ def run_continuous_real(args):
         print("WAITING FOR OBJECT...")
         print()
 
+        last_health_check = 0.0
+        health_interval = 3.0
+
         while True:
+            now = time.monotonic()
+
+            if now - last_health_check >= health_interval:
+                health_before = system_state.get()["health"]
+                esp32_was_ok = bool(
+                    health_before.get("esp32", False)
+                )
+
+                update_esp32_live_health(esp32)
+
+                health_after = system_state.get()["health"]
+                esp32_is_ok = bool(
+                    health_after.get("esp32", False)
+                )
+
+                if (not esp32_was_ok) and esp32_is_ok:
+                    print()
+                    print("ESP32 RECOVERED")
+                    print("RESTORING AUTO STANDBY...")
+
+                    recovery_standby_ok = safe_set_warm_cool(
+                        esp32,
+                        STANDBY_LEVEL,
+                        STANDBY_LEVEL
+                    )
+
+                    if recovery_standby_ok:
+                        current_warm = STANDBY_LEVEL
+                        current_cool = STANDBY_LEVEL
+
+                        system_state.update(
+                            status="STANDBY",
+                            warm_output=current_warm,
+                            cool_output=current_cool
+                        )
+
+                        print(
+                            "WAITING FOR RECOVERY LIGHT TO STABILIZE..."
+                        )
+                        time.sleep(5.0)
+
+                        print(
+                            "RECAPTURING EMPTY STANDBY REFERENCE..."
+                        )
+
+                        for _ in range(10):
+                            camera.read()
+
+                        reference_frame = camera.read()
+
+                        reference_roi = reference_frame[
+                            y1:y1 + roi_h,
+                            x1:x1 + roi_w
+                        ]
+
+                        reference_gray = cv2.cvtColor(
+                            reference_roi,
+                            cv2.COLOR_BGR2GRAY
+                        ).astype(np.float32)
+
+                        presence_hits = 0
+
+                        print("RECOVERY EMPTY REFERENCE READY")
+                        print("WAITING FOR OBJECT...")
+                        print()
+                    else:
+                        print(
+                            "RECOVERY STANDBY FAILED: "
+                            "ESP32 unavailable"
+                        )
+
+                last_health_check = now
+
             state = system_state.get()
 
             if state.get("requested_mode") == "MANUAL":
@@ -1429,10 +1713,19 @@ def run_continuous_real(args):
                     )
                 )
 
-                esp32.set_warm_cool(
+                analysis_light_ok = safe_set_warm_cool(
+                    esp32,
                     ANALYSIS_LEVEL,
                     ANALYSIS_LEVEL
                 )
+
+                if not analysis_light_ok:
+                    print(
+                        "ANALYSIS LIGHT SKIPPED: ESP32 unavailable"
+                    )
+                    presence_hits = 0
+                    time.sleep(1.0)
+                    continue
 
                 current_warm = ANALYSIS_LEVEL
                 current_cool = ANALYSIS_LEVEL
@@ -1702,10 +1995,16 @@ def run_continuous_real(args):
                                 )
                             )
 
-                            esp32.set_warm_cool(
+                            if not safe_set_warm_cool(
+                                esp32,
                                 warm_output,
                                 cool_output
-                            )
+                            ):
+                                print(
+                                    "FEEDBACK ABORTED: ESP32 unavailable"
+                                )
+                                feedback_locked = False
+                                break
 
                             # Gercekte uygulanmis son PWM degerlerini tut.
                             current_warm = warm_output
@@ -1713,10 +2012,30 @@ def run_continuous_real(args):
 
                             time.sleep(1.0)
 
-                            # Ilk spectral okuma stale olabildigi icin at.
-                            esp32.read_spectral()
+                            try:
+                                # Ilk spectral okuma stale olabildigi icin at.
+                                esp32.read_spectral()
 
-                            spectral = esp32.read_spectral()
+                                spectral = esp32.read_spectral()
+
+                            except Exception as exc:
+                                system_state.update_health(
+                                    esp32=False,
+                                    as7343=False
+                                )
+
+                                print(
+                                    "FEEDBACK SPECTRAL ERROR:",
+                                    exc
+                                )
+
+                                feedback_locked = False
+                                break
+
+                            system_state.update_health(
+                                esp32=True,
+                                as7343=True
+                            )
 
                             estimate = spectral_estimator.estimate(
                                 spectral
@@ -1887,10 +2206,22 @@ def run_continuous_real(args):
                 PERIODIC_FEEDBACK_INTERVAL = 5.0
 
                 removal_hits = 0
+                active_product_recovery_pending = False
                 removal_monitor_start = time.time()
                 last_periodic_feedback = time.monotonic()
 
                 while True:
+                    # MANUAL mode has priority over AUTO product monitoring.
+                    # Leave this inner loop so the outer loop can enter
+                    # run_manual_control() immediately.
+                    state = system_state.get()
+
+                    if state.get("requested_mode") == "MANUAL":
+                        print()
+                        print("MANUAL REQUESTED - LEAVING AUTO PRODUCT MONITOR")
+                        print()
+                        break
+
                     frame = camera.read()
 
                     roi = frame[
@@ -1912,7 +2243,34 @@ def run_continuous_real(args):
                     )
 
                     if removed_now:
-                        removal_hits += 1
+                        # Isik kaybi, urun kaldirildi gibi gorunebilir.
+                        # Removal kararindan once ESP32'nin gercekten
+                        # erisilebilir oldugunu dogrula.
+                        health_before_removal = system_state.get()["health"]
+                        esp32_before_removal = bool(
+                            health_before_removal.get("esp32", False)
+                        )
+
+                        update_esp32_live_health(esp32)
+
+                        removal_health = system_state.get()["health"]
+                        esp32_available = bool(
+                            removal_health.get("esp32", False)
+                        )
+
+                        if esp32_available:
+                            if not esp32_before_removal:
+                                active_product_recovery_pending = True
+                            removal_hits += 1
+                        else:
+                            active_product_recovery_pending = True
+                            removal_hits = 0
+                            print(
+                                "REMOVAL CHECK PAUSED: "
+                                "ESP32 unavailable"
+                            )
+                            time.sleep(0.5)
+                            continue
                     else:
                         removal_hits = 0
 
@@ -1983,7 +2341,69 @@ def run_continuous_real(args):
                         print("-" * 60)
 
                         try:
+                            health_before = system_state.get()["health"]
+                            esp32_was_ok = bool(
+                                health_before.get("esp32", False)
+                            )
+
                             spectral = esp32.read_spectral()
+
+                            system_state.update_health(
+                                esp32=True,
+                                as7343=True
+                            )
+
+                            if (
+                                active_product_recovery_pending
+                                or not esp32_was_ok
+                            ):
+                                print()
+                                print(
+                                    "ESP32 RECOVERED DURING ACTIVE PRODUCT"
+                                )
+                                print(
+                                    "RESTORING ACTIVE PRODUCT OUTPUT: "
+                                    "WARM {:.2f}% / COOL {:.2f}%".format(
+                                        current_warm,
+                                        current_cool
+                                    )
+                                )
+
+                                recovery_output_ok = (
+                                    safe_set_warm_cool(
+                                        esp32,
+                                        current_warm,
+                                        current_cool
+                                    )
+                                )
+
+                                if recovery_output_ok:
+                                    system_state.update(
+                                        warm_output=current_warm,
+                                        cool_output=current_cool
+                                    )
+
+                                    print(
+                                        "ACTIVE PRODUCT OUTPUT RESTORED"
+                                    )
+
+                                    print(
+                                        "WAITING FOR RECOVERY LIGHT "
+                                        "TO STABILIZE..."
+                                    )
+                                    time.sleep(2.0)
+
+                                    print(
+                                        "RE-READING AS7343 "
+                                        "AFTER RECOVERY..."
+                                    )
+                                    spectral = esp32.read_spectral()
+                                    active_product_recovery_pending = False
+                                else:
+                                    print(
+                                        "ACTIVE PRODUCT OUTPUT "
+                                        "RESTORE FAILED"
+                                    )
 
                             estimate = spectral_estimator.estimate(
                                 spectral
@@ -2115,26 +2535,33 @@ def run_continuous_real(args):
                                     )
                                 )
 
-                                esp32.set_warm_cool(
+                                correction_ok = safe_set_warm_cool(
+                                    esp32,
                                     new_warm_output,
                                     new_cool_output
                                 )
 
-                                current_warm = (
-                                    new_warm_output
-                                )
+                                if not correction_ok:
+                                    print(
+                                        "PERIODIC CORRECTION SKIPPED: "
+                                        "ESP32 unavailable"
+                                    )
+                                else:
+                                    current_warm = (
+                                        new_warm_output
+                                    )
 
-                                current_cool = (
-                                    new_cool_output
-                                )
+                                    current_cool = (
+                                        new_cool_output
+                                    )
 
-                                system_state.update(
-                                    status="ADJUSTING",
-                                    warm_output=current_warm,
-                                    cool_output=current_cool,
-                                    measured_cct=measured_cct,
-                                    measured_brightness=measured_brightness
-                                )
+                                    system_state.update(
+                                        status="ADJUSTING",
+                                        warm_output=current_warm,
+                                        cool_output=current_cool,
+                                        measured_cct=measured_cct,
+                                        measured_brightness=measured_brightness
+                                    )
 
                                 ambient_limit = (
                                     new_warm_output <= 0.01
@@ -2164,6 +2591,11 @@ def run_continuous_real(args):
                                     )
 
                         except Exception as exc:
+                            system_state.update_health(
+                                esp32=False,
+                                as7343=False
+                            )
+
                             print(
                                 "PERIODIC AS7343 ERROR:"
                             )
@@ -2194,7 +2626,7 @@ def run_continuous_real(args):
                 print()
                 print("RETURNING TO STANDBY...")
 
-                smooth_set_warm_cool(
+                standby_reached = smooth_set_warm_cool(
                     esp32=esp32,
                     start_warm=current_warm,
                     start_cool=current_cool,
@@ -2204,8 +2636,14 @@ def run_continuous_real(args):
                     steps=90
                 )
 
-                current_warm = STANDBY_LEVEL
-                current_cool = STANDBY_LEVEL
+                if standby_reached:
+                    current_warm = STANDBY_LEVEL
+                    current_cool = STANDBY_LEVEL
+                else:
+                    print(
+                        "FINAL STANDBY NOT REACHED: "
+                        "ESP32 unavailable"
+                    )
         except Exception:
             pass
 

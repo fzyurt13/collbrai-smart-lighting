@@ -234,6 +234,19 @@ def process_command(line):
         elif line.upper() == "STATUS":
             return "STATUS READY PCA=0x40 AS7343=0x39"
 
+        elif line.upper() == "HEALTH":
+            devices = i2c.scan()
+
+            pca_ok = 0x40 in devices
+            as7343_ok = 0x39 in devices
+
+            return (
+                "HEALTH ESP32=1 PCA9685={} AS7343={}".format(
+                    1 if pca_ok else 0,
+                    1 if as7343_ok else 0
+                )
+            )
+
         elif line.upper() == "SPECTRAL":
             data = sensor.read_channels()
 

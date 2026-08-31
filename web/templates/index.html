@@ -920,14 +920,31 @@ function updateManualDisplays() {
 }
 
 
+let manualSendTimer = null;
+
+function scheduleManualUpdate() {
+    if (currentMode !== "MANUAL") {
+        return;
+    }
+
+    clearTimeout(manualSendTimer);
+
+    manualSendTimer = setTimeout(() => {
+        selectManual();
+    }, 120);
+}
+
+
 cctSlider.addEventListener("input", () => {
     manualCctDirty = true;
     updateManualDisplays();
+    scheduleManualUpdate();
 });
 
 brightnessSlider.addEventListener("input", () => {
     manualBrightnessDirty = true;
     updateManualDisplays();
+    scheduleManualUpdate();
 });
 
 
@@ -1214,7 +1231,7 @@ async function loadState() {
 
 updateManualDisplays();
 loadState();
-setInterval(loadState, 1000);
+setInterval(loadState, 200);
 </script>
 
 </body>

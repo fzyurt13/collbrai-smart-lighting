@@ -342,10 +342,33 @@ class ESP32Client:
         )
 
     def health(self):
-        responses = self.status()
+        responses = self._send_command("HEALTH")
+
+        esp32_ok = False
+        pca9685_ok = False
+        as7343_ok = False
+
+        for line in responses:
+            if line.startswith("HEALTH "):
+                parts = line.split()[1:]
+
+                values = {}
+                for part in parts:
+                    if "=" in part:
+                        key, value = part.split("=", 1)
+                        values[key] = value
+
+                esp32_ok = values.get("ESP32") == "1"
+                pca9685_ok = values.get("PCA9685") == "1"
+                as7343_ok = values.get("AS7343") == "1"
+
+                break
 
         result = {
-            "connected": True,
+            "connected": esp32_ok,
+            "esp32": esp32_ok,
+            "pca9685": pca9685_ok,
+            "as7343": as7343_ok,
             "transport": self.transport,
             "responses": responses
         }
@@ -353,7 +376,6 @@ class ESP32Client:
         if self.transport == "wifi":
             result["host"] = self.host
             result["tcp_port"] = self.tcp_port
-
         else:
             result["port"] = self.port
 
