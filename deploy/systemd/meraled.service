@@ -1,0 +1,17 @@
+[Unit]
+Description=MERALED Smart Lighting Controller
+Wants=network-online.target
+After=network-online.target nvargus-daemon.service
+Requires=nvargus-daemon.service
+
+[Service]
+Type=simple
+User=collbrai
+WorkingDirectory=/home/collbrai/smart_lighting
+ExecStart=/home/collbrai/smart_lighting/.venv/bin/python3 /home/collbrai/smart_lighting/main.py --continuous --ai --camera imx219
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

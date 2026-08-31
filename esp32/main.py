@@ -1,12 +1,46 @@
 from machine import Pin, I2C
 from as7343 import AS7343
-from wifi_config import WIFI_SSID, WIFI_PASSWORD, TCP_PORT
+from device_config_manager import (
+    load_runtime_config,
+    get_or_create_setup_pin,
+    save_wifi_config
+)
+from ble_provisioning import MeraledBLEProvisioning
 import sys
 import time
 import json
 import network
 import socket
 import select
+
+
+runtime_config = load_runtime_config()
+
+DEVICE_ID = runtime_config["device_id"]
+PROVISIONED = runtime_config["provisioned"]
+WIFI_SSID = runtime_config["wifi_ssid"]
+WIFI_PASSWORD = runtime_config["wifi_password"]
+TCP_PORT = runtime_config["tcp_port"]
+CONFIG_SOURCE = runtime_config["source"]
+
+SETUP_PIN = get_or_create_setup_pin()
+
+ble_provisioning = None
+
+try:
+    ble_provisioning = MeraledBLEProvisioning(
+        device_id=DEVICE_ID,
+        setup_pin=SETUP_PIN,
+        provisioned=PROVISIONED
+    )
+
+    ble_provisioning.start()
+
+except Exception as exc:
+    print(
+        "BLE PROVISIONING ERROR:",
+        repr(exc)
+    )
 
 
 PCA_ADDR = 0x40
@@ -144,6 +178,14 @@ def read_spectral():
 
 
 def connect_wifi():
+    if not WIFI_SSID or WIFI_PASSWORD is None:
+        raise RuntimeError(
+            "WIFI NOT CONFIGURED"
+        )
+
+    print("DEVICE ID:", DEVICE_ID)
+    print("CONFIG SOURCE:", CONFIG_SOURCE)
+
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
 
@@ -168,6 +210,86 @@ def connect_wifi():
     print("WIFI IP:", wlan.ifconfig()[0])
 
     return wlan
+
+
+def try_provision_wifi(
+    ssid,
+    password,
+    timeout_ms=15000
+):
+    if not ssid:
+        raise ValueError(
+            "WIFI SSID EMPTY"
+        )
+
+    if password is None:
+        raise ValueError(
+            "WIFI PASSWORD NONE"
+        )
+
+    candidate_wlan = network.WLAN(
+        network.STA_IF
+    )
+
+    candidate_wlan.active(True)
+
+    try:
+        candidate_wlan.disconnect()
+    except Exception:
+        pass
+
+    time.sleep_ms(250)
+
+    print(
+        "PROVISION WIFI CONNECTING:",
+        ssid
+    )
+
+    candidate_wlan.connect(
+        ssid,
+        password
+    )
+
+    start = time.ticks_ms()
+
+    while not candidate_wlan.isconnected():
+        if (
+            time.ticks_diff(
+                time.ticks_ms(),
+                start
+            )
+            > timeout_ms
+        ):
+            try:
+                candidate_wlan.disconnect()
+            except Exception:
+                pass
+
+            raise RuntimeError(
+                "WIFI PROVISION TIMEOUT"
+            )
+
+        time.sleep_ms(250)
+
+    ip_address = candidate_wlan.ifconfig()[0]
+
+    print(
+        "PROVISION WIFI CONNECTED:",
+        ip_address
+    )
+
+    # Yalnızca gerçek bağlantı başarılı olduktan sonra
+    # kimlik bilgilerini kalıcı olarak kaydet.
+    save_wifi_config(
+        ssid,
+        password,
+        TCP_PORT
+    )
+
+    return (
+        candidate_wlan,
+        ip_address
+    )
 
 
 def create_tcp_server():
@@ -234,6 +356,29 @@ def process_command(line):
         elif line.upper() == "STATUS":
             return "STATUS READY PCA=0x40 AS7343=0x39"
 
+        elif line.upper() == "DEVICE_INFO":
+            return (
+                "DEVICE_INFO ID={} PROVISIONED={} SOURCE={} PORT={}".format(
+                    DEVICE_ID,
+                    1 if PROVISIONED else 0,
+                    CONFIG_SOURCE,
+                    TCP_PORT
+                )
+            )
+
+        elif line.upper() == "CAPABILITIES":
+            try:
+                import bluetooth
+                ble_ok = 1
+            except Exception:
+                ble_ok = 0
+
+            return (
+                "CAPABILITIES WIFI=1 BLE={} TCP=1".format(
+                    ble_ok
+                )
+            )
+
         elif line.upper() == "HEALTH":
             devices = i2c.scan()
 
@@ -270,8 +415,23 @@ print(
     "COLLBRAI ESP32 LIGHT CONTROLLER READY"
 )
 
-wlan = connect_wifi()
-tcp_server = create_tcp_server()
+wlan = None
+tcp_server = None
+
+try:
+    wlan = connect_wifi()
+
+    if wlan is not None and wlan.isconnected():
+        tcp_server = create_tcp_server()
+
+except Exception as exc:
+    print(
+        "WIFI STARTUP SKIPPED:",
+        repr(exc)
+    )
+
+    wlan = None
+    tcp_server = None
 
 client_socket = None
 client_buffer = b""
@@ -285,6 +445,95 @@ stdin_poll.register(
 
 while True:
     try:
+        # BLE uzerinden yeni Wi-Fi kurulum istegi geldiyse
+        # GATT IRQ icinde bloklamadan burada isle.
+        if ble_provisioning is not None:
+            wifi_request = (
+                ble_provisioning
+                    .take_wifi_connect_request()
+            )
+
+            if wifi_request is not None:
+                conn_handle = wifi_request[
+                    "conn_handle"
+                ]
+
+                new_ssid = wifi_request[
+                    "ssid"
+                ]
+
+                new_password = wifi_request[
+                    "password"
+                ]
+
+                ble_provisioning.set_wifi_status(
+                    conn_handle,
+                    "WIFI_CONNECTING"
+                )
+
+                # Eski TCP baglantisini temizle.
+                if client_socket is not None:
+                    try:
+                        client_socket.close()
+                    except Exception:
+                        pass
+
+                    client_socket = None
+                    client_buffer = b""
+
+                if tcp_server is not None:
+                    try:
+                        tcp_server.close()
+                    except Exception:
+                        pass
+
+                    tcp_server = None
+
+                try:
+                    (
+                        wlan,
+                        wifi_ip
+                    ) = try_provision_wifi(
+                        new_ssid,
+                        new_password
+                    )
+
+                    tcp_server = (
+                        create_tcp_server()
+                    )
+
+                    PROVISIONED = True
+                    CONFIG_SOURCE = (
+                        "device_config"
+                    )
+
+                    ble_provisioning.mark_provisioned(
+                        conn_handle
+                    )
+
+                    ble_provisioning.set_wifi_status(
+                        conn_handle,
+                        "WIFI_CONNECTED={}".format(
+                            wifi_ip
+                        )
+                    )
+
+                    print(
+                        "BLE WIFI PROVISION SUCCESS",
+                        wifi_ip
+                    )
+
+                except Exception as exc:
+                    ble_provisioning.set_wifi_status(
+                        conn_handle,
+                        "WIFI_FAILED"
+                    )
+
+                    print(
+                        "BLE WIFI PROVISION FAILED:",
+                        repr(exc)
+                    )
+
         # USB Serial komutlari calismaya devam eder,
         # ancak Wi-Fi/TCP dongusunu bloklamaz.
         if stdin_poll.poll(0):
@@ -296,8 +545,12 @@ while True:
                 if response:
                     print(response)
 
-        # Yeni TCP istemcisi kabul et
-        if client_socket is None:
+        # Yeni TCP istemcisi kabul et.
+        # Wi-Fi henuz provision edilmediyse TCP sunucusu olmayabilir.
+        if (
+            tcp_server is not None
+            and client_socket is None
+        ):
             try:
                 client_socket, client_addr = tcp_server.accept()
                 client_socket.settimeout(0.05)

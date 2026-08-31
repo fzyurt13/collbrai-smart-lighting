@@ -7,7 +7,9 @@ from web.system_state import system_state
 
 from config.settings import (
     MODE,
+    ESP32_TRANSPORT,
     ESP32_HOST,
+    ESP32_TCP_PORT,
     ESP32_TIMEOUT,
     TARGET_CCT,
     CCT_TOLERANCE,
@@ -129,7 +131,7 @@ def parse_args():
     parser.add_argument(
         "--esp32-transport",
         type=str,
-        default="serial",
+        default=None,
         choices=["serial", "wifi"],
         help="ESP32 communication transport"
     )
@@ -144,7 +146,7 @@ def parse_args():
     parser.add_argument(
         "--esp32-tcp-port",
         type=int,
-        default=5000,
+        default=None,
         help="ESP32 TCP server port"
     )
 
@@ -152,17 +154,21 @@ def parse_args():
 
 
 def create_esp32_client_from_args(args):
-    if args.esp32_transport == "wifi":
-        if not args.esp32_host:
+    # Command-line arguments override product defaults.
+    transport = args.esp32_transport or ESP32_TRANSPORT
+    host = args.esp32_host or ESP32_HOST
+    tcp_port = args.esp32_tcp_port or ESP32_TCP_PORT
+
+    if transport == "wifi":
+        if not host:
             raise ValueError(
-                "--esp32-host is required when "
-                "--esp32-transport wifi is used"
+                "ESP32 Wi-Fi host is not configured"
             )
 
         return ESP32Client(
             transport="wifi",
-            host=args.esp32_host,
-            tcp_port=args.esp32_tcp_port,
+            host=host,
+            tcp_port=tcp_port,
             wifi_timeout=5.0
         )
 
@@ -1544,14 +1550,44 @@ def run_continuous_real(args):
         CHANGE_PIXEL_THRESHOLD = 15.0
         PRESENCE_CHANGED_PERCENT = 0.7
 
-        print("CAPTURING EMPTY STANDBY REFERENCE...")
+        # -------------------------------------------------
+        # STARTUP PRODUCT CHECK
+        #
+        # Sistem urun vitrindeyken acilirsa urunlu goruntuyu
+        # bos vitrin referansi olarak kaydetme.
+        # -------------------------------------------------
+
+        print("CHECKING FOR PRODUCT AT STARTUP...")
+        print("STARTUP ANALYSIS LIGHT: WARM 10.0% / COOL 10.0%")
+
+        startup_light_ok = safe_set_warm_cool(
+            esp32,
+            10.0,
+            10.0
+        )
+
+        if startup_light_ok:
+            current_warm = 10.0
+            current_cool = 10.0
+            system_state.update(
+                warm_output=current_warm,
+                cool_output=current_cool
+            )
+        else:
+            print(
+                "STARTUP ANALYSIS LIGHT FAILED: "
+                "ESP32 unavailable"
+            )
+
+        print("WAITING FOR STARTUP ANALYSIS LIGHT TO STABILIZE...")
+        time.sleep(2.0)
 
         for _ in range(10):
             camera.read()
 
-        reference_frame = camera.read()
+        startup_probe_frame = camera.read()
 
-        h, w = reference_frame.shape[:2]
+        h, w = startup_probe_frame.shape[:2]
 
         roi_w = int(w * 0.70)
         roi_h = int(h * 0.70)
@@ -1559,19 +1595,132 @@ def run_continuous_real(args):
         x1 = (w - roi_w) // 2
         y1 = (h - roi_h) // 2
 
-        reference_roi = reference_frame[
-            y1:y1 + roi_h,
-            x1:x1 + roi_w
-        ]
+        startup_classifier = create_classifier(
+            classifier_type="imx219"
+        )
 
-        reference_gray = cv2.cvtColor(
-            reference_roi,
-            cv2.COLOR_BGR2GRAY
-        ).astype(np.float32)
+        startup_decision_manager = AIDecisionManager(
+            confidence_threshold=0.80
+        )
 
-        print("EMPTY REFERENCE READY")
-        print("WAITING FOR OBJECT...")
-        print()
+        startup_confirmation = TemporalConfirmation(
+            required_hits=3
+        )
+
+        startup_result = None
+
+        for startup_frame_index in range(1, 4):
+            startup_frame = camera.read()
+
+            startup_prediction = startup_classifier.predict(
+                startup_frame
+            )
+
+            startup_decision = startup_decision_manager.evaluate(
+                startup_prediction
+            )
+
+            if startup_decision["accepted"]:
+                startup_result = startup_confirmation.update(
+                    startup_decision["product_class"]
+                )
+            else:
+                startup_result = startup_confirmation.update(
+                    "unknown"
+                )
+
+            print(
+                "STARTUP AI FRAME {} | class={} | confidence={:.1f}%".format(
+                    startup_frame_index,
+                    startup_prediction.get(
+                        "class",
+                        "unknown"
+                    ),
+                    float(
+                        startup_prediction.get(
+                            "confidence",
+                            0.0
+                        )
+                    ) * 100.0
+                )
+            )
+
+            time.sleep(0.2)
+
+        startup_product_present = bool(
+            startup_result
+            and startup_result.get("confirmed", False)
+            and startup_result.get("product_class")
+            in ("gold_like", "diamond_like")
+        )
+
+        reference_valid = False
+        reference_gray = None
+
+        if startup_product_present:
+            print()
+            print(
+                "PRODUCT PRESENT AT STARTUP: {}".format(
+                    startup_result["product_class"]
+                )
+            )
+            print(
+                "EMPTY REFERENCE CAPTURE DEFERRED "
+                "UNTIL PRODUCT REMOVAL"
+            )
+            print()
+
+            presence_hits = REQUIRED_HITS
+
+        else:
+            print()
+            print("NO PRODUCT DETECTED AT STARTUP")
+            print("RETURNING TO STANDBY FOR EMPTY REFERENCE...")
+
+            standby_ok = safe_set_warm_cool(
+                esp32,
+                STANDBY_LEVEL,
+                STANDBY_LEVEL
+            )
+
+            if standby_ok:
+                current_warm = STANDBY_LEVEL
+                current_cool = STANDBY_LEVEL
+                system_state.update(
+                    warm_output=current_warm,
+                    cool_output=current_cool
+                )
+            else:
+                print(
+                    "STARTUP STANDBY RESTORE FAILED: "
+                    "ESP32 unavailable"
+                )
+
+            print("WAITING FOR STANDBY LIGHT TO STABILIZE...")
+            time.sleep(2.0)
+
+            print("CAPTURING EMPTY STANDBY REFERENCE...")
+
+            for _ in range(10):
+                camera.read()
+
+            reference_frame = camera.read()
+
+            reference_roi = reference_frame[
+                y1:y1 + roi_h,
+                x1:x1 + roi_w
+            ]
+
+            reference_gray = cv2.cvtColor(
+                reference_roi,
+                cv2.COLOR_BGR2GRAY
+            ).astype(np.float32)
+
+            reference_valid = True
+
+            print("EMPTY REFERENCE READY")
+            print("WAITING FOR OBJECT...")
+            print()
 
         last_health_check = 0.0
         health_interval = 3.0
@@ -1637,6 +1786,8 @@ def run_continuous_real(args):
                             cv2.COLOR_BGR2GRAY
                         ).astype(np.float32)
 
+                        reference_valid = True
+                        startup_product_present = False
                         presence_hits = 0
 
                         print("RECOVERY EMPTY REFERENCE READY")
@@ -1663,47 +1814,64 @@ def run_continuous_real(args):
                 presence_hits = 0
                 continue
 
-            frame = camera.read()
-
-            roi = frame[
-                y1:y1 + roi_h,
-                x1:x1 + roi_w
-            ]
-
-            gray = cv2.cvtColor(
-                roi,
-                cv2.COLOR_BGR2GRAY
-            ).astype(np.float32)
-
-            diff = np.abs(
-                gray - reference_gray
-            )
-
-            changed_percent = float(
-                np.mean(
-                    diff > CHANGE_PIXEL_THRESHOLD
-                ) * 100.0
-            )
-
-            object_present = (
-                changed_percent >= PRESENCE_CHANGED_PERCENT
-            )
-
-            if object_present:
-                presence_hits += 1
-            else:
-                presence_hits = 0
-
-            print(
-                "CHANGED={:.2f}% | presence={} | hits={}/{}".format(
-                    changed_percent,
-                    "YES" if object_present else "NO",
-                    presence_hits,
-                    REQUIRED_HITS
+            if startup_product_present:
+                print(
+                    "STARTUP PRODUCT -> ENTERING NORMAL "
+                    "PRODUCT ANALYSIS"
                 )
-            )
+                presence_hits = REQUIRED_HITS
+            elif reference_valid and reference_gray is not None:
+                frame = camera.read()
+
+                roi = frame[
+                    y1:y1 + roi_h,
+                    x1:x1 + roi_w
+                ]
+
+                gray = cv2.cvtColor(
+                    roi,
+                    cv2.COLOR_BGR2GRAY
+                ).astype(np.float32)
+
+                diff = np.abs(
+                    gray - reference_gray
+                )
+
+                changed_percent = float(
+                    np.mean(
+                        diff > CHANGE_PIXEL_THRESHOLD
+                    ) * 100.0
+                )
+
+                object_present = (
+                    changed_percent >= PRESENCE_CHANGED_PERCENT
+                )
+
+                if object_present:
+                    presence_hits += 1
+                else:
+                    presence_hits = 0
+
+                print(
+                    "CHANGED={:.2f}% | presence={} | hits={}/{}".format(
+                        changed_percent,
+                        "YES" if object_present else "NO",
+                        presence_hits,
+                        REQUIRED_HITS
+                    )
+                )
+
+            else:
+                print(
+                    "EMPTY REFERENCE NOT READY - "
+                    "WAITING FOR EMPTY REFERENCE"
+                )
+                presence_hits = 0
+                time.sleep(0.2)
+                continue
 
             if presence_hits >= REQUIRED_HITS:
+                startup_product_present = False
                 print()
                 print("OBJECT CONFIRMED")
                 print(
@@ -2317,9 +2485,37 @@ def run_continuous_real(args):
 
                         presence_hits = 0
 
-                        print(
-                            "USING ORIGINAL EMPTY REFERENCE"
-                        )
+                        if not reference_valid:
+                            print(
+                                "CAPTURING FIRST EMPTY REFERENCE "
+                                "AFTER STARTUP PRODUCT REMOVAL..."
+                            )
+
+                            time.sleep(2.0)
+
+                            for _ in range(10):
+                                camera.read()
+
+                            reference_frame = camera.read()
+
+                            reference_roi = reference_frame[
+                                y1:y1 + roi_h,
+                                x1:x1 + roi_w
+                            ]
+
+                            reference_gray = cv2.cvtColor(
+                                reference_roi,
+                                cv2.COLOR_BGR2GRAY
+                            ).astype(np.float32)
+
+                            reference_valid = True
+
+                            print("EMPTY REFERENCE READY")
+                        else:
+                            print(
+                                "USING ORIGINAL EMPTY REFERENCE"
+                            )
+
                         print("WAITING FOR OBJECT...")
                         print()
 
@@ -2639,15 +2835,55 @@ def run_continuous_real(args):
                 if standby_reached:
                     current_warm = STANDBY_LEVEL
                     current_cool = STANDBY_LEVEL
+                    system_state.update(
+                        status="STANDBY",
+                        warm_output=STANDBY_LEVEL,
+                        cool_output=STANDBY_LEVEL
+                    )
+                    print("FINAL STANDBY REACHED")
                 else:
                     print(
                         "FINAL STANDBY NOT REACHED: "
                         "ESP32 unavailable"
                     )
+
+        except KeyboardInterrupt:
+            print()
+            print("SHUTDOWN INTERRUPTED")
+            print("TRYING DIRECT STANDBY...")
+
+            try:
+                if safe_set_warm_cool(
+                    esp32,
+                    STANDBY_LEVEL,
+                    STANDBY_LEVEL
+                ):
+                    current_warm = STANDBY_LEVEL
+                    current_cool = STANDBY_LEVEL
+                    system_state.update(
+                        status="STANDBY",
+                        warm_output=STANDBY_LEVEL,
+                        cool_output=STANDBY_LEVEL
+                    )
+                    print("FINAL STANDBY REACHED")
+                else:
+                    print(
+                        "FINAL STANDBY NOT REACHED: "
+                        "ESP32 unavailable"
+                    )
+            except (KeyboardInterrupt, Exception):
+                print(
+                    "FINAL STANDBY NOT REACHED: "
+                    "shutdown interrupted"
+                )
+
+        except Exception as exc:
+            print("FINAL STANDBY ERROR:", exc)
+
+        try:
+            esp32.close()
         except Exception:
             pass
-
-        esp32.close()
 
 
 def main():
