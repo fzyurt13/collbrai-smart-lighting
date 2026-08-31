@@ -34,3 +34,8 @@ esp32/wifi_config.py
 
 # Local authentication data
 data/operator_auth.json
+
+# Android build outputs and signing keys
+android/**/build/
+android/**/*.apk
+android/**/*.keystore
