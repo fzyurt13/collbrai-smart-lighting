@@ -1,11 +1,9 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect
 
 try:
     from web.system_state import system_state
-    from web.auth_store import verify_pin, change_pin
 except ModuleNotFoundError:
     from system_state import system_state
-    from auth_store import verify_pin, change_pin
 
 
 app = Flask(__name__)
@@ -21,9 +19,10 @@ def splash():
     return render_template("splash.html")
 
 
+# MERALED_NO_CLASSIC_LOGIN_V1
 @app.route("/login")
 def login():
-    return render_template("login.html")
+    return redirect("/")
 
 
 @app.route("/setup")
@@ -38,42 +37,23 @@ def settings():
 
 @app.route("/profile")
 def profile():
-    return render_template("profile.html")
+    return redirect("/settings")
 
 
 @app.route("/api/login", methods=["POST"])
-def api_login():
-    data = request.get_json(silent=True) or {}
-    pin = str(data.get("pin", ""))
-
-    if not verify_pin(pin):
-        return jsonify({
-            "ok": False,
-            "error": "Invalid PIN"
-        }), 401
-
+def api_login_disabled():
     return jsonify({
-        "ok": True
-    })
+        "ok": False,
+        "error": "Classic login is disabled"
+    }), 410
 
 
 @app.route("/api/change-pin", methods=["POST"])
-def api_change_pin():
-    data = request.get_json(silent=True) or {}
-
-    new_pin = str(data.get("new_pin", ""))
-
-    try:
-        change_pin(new_pin)
-    except ValueError as exc:
-        return jsonify({
-            "ok": False,
-            "error": str(exc)
-        }), 400
-
+def api_change_pin_disabled():
     return jsonify({
-        "ok": True
-    })
+        "ok": False,
+        "error": "PIN authentication is disabled"
+    }), 410
 
 
 @app.route("/api/state")

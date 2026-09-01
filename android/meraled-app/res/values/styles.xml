@@ -5,6 +5,10 @@
         name="AppTheme"
         parent="android:style/Theme.Material.Light.NoActionBar">
 
+        <!-- MERALED DARK WINDOW V1 -->
+        <item name="android:windowBackground">@drawable/meraled_window_background</item>
+        <item name="android:colorBackground">#0B1015</item>
+
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:colorAccent">#2256C7</item>

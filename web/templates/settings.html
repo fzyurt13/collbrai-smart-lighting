@@ -853,32 +853,7 @@ h1 {
     </section>
 
 
-    <section class="section">
-        <div class="section-title">ACCOUNT</div>
-
-        <div class="card">
-
-            <div class="row action" onclick="openProfile()">
-                <div class="row-main">
-                    <div class="row-name">Store Operator</div>
-                    <div class="row-sub">Local device profile</div>
-                </div>
-
-                <div class="chevron">›</div>
-            </div>
-
-            <div class="row action danger" onclick="logout()">
-                <div class="row-main">
-                    <div class="row-name">Sign Out</div>
-                    <div class="row-sub">Return to login screen</div>
-                </div>
-
-                <div class="chevron">›</div>
-            </div>
-
-        </div>
-    </section>
-
+    <!-- MERALED NO CLASSIC LOGIN V1 -->
 
     <div class="version">
         MERALED SYSTEM • <strong>COLLBRAI</strong>
@@ -892,16 +867,8 @@ function goBack() {
     window.location.href = "/";
 }
 
-function logout() {
-    window.location.href = "/login";
-}
-
 function runSystemCheck() {
     window.location.href = "/setup";
-}
-
-function openProfile() {
-    window.location.href = "/profile";
 }
 
 

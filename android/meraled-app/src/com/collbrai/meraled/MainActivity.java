@@ -1,6 +1,8 @@
 package com.collbrai.meraled;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
@@ -18,12 +20,17 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.InputType;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebChromeClient;
@@ -32,10 +39,14 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import java.net.InetAddress;
+import java.net.Inet4Address;
 
 import java.util.UUID;
 import java.util.ArrayList;
@@ -52,6 +63,14 @@ public class MainActivity extends Activity {
     private WifiManager wifiManager;
 
     private WebView webView;
+
+    // MERALED_NSD_DISCOVERY_V17
+    private NsdManager nsdManager;
+    private NsdManager.DiscoveryListener meraledDiscoveryListener;
+    private WifiManager.MulticastLock meraledMulticastLock;
+
+    private boolean meraledWebStarted = false;
+
     private BluetoothDevice foundDevice;
     private BluetoothGatt bluetoothGatt;
     private BluetoothGattCharacteristic authCharacteristic;
@@ -106,6 +125,13 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler();
 
+    // WIFI_STATUS_POLL_FALLBACK_V1
+    private boolean wifiStatusPollingActive = false;
+    private int wifiStatusPollAttempts = 0;
+
+    private static final int WIFI_STATUS_POLL_MAX_ATTEMPTS = 5;
+    private static final long WIFI_STATUS_POLL_INTERVAL_MS = 3000L;
+
     private String foundDeviceName = null;
     private String pendingSetupPin = null;
 
@@ -129,8 +155,9 @@ public class MainActivity extends Activity {
 
     private static final long SCAN_PERIOD_MS = 10000;
 
+    // MERALED_MDNS_V1
     private static final String MERALED_MAIN_URL =
-        "http://192.168.1.27:8080/";
+        "http://meraled.local:8080/";
 
     private static final String BLUETOOTH_SCAN_PERMISSION =
         "android.permission.BLUETOOTH_SCAN";
@@ -3178,10 +3205,35 @@ public class MainActivity extends Activity {
     }
 
 
+    // MERALED_DIRECT_WEBVIEW_V14
+    // MERALED_DIRECT_WEBVIEW_V14
     private void showMainWebApp() {
+
+        final int backgroundColor =
+            Color.parseColor("#07101B");
+
+        getWindow()
+            .getDecorView()
+            .setBackgroundColor(
+                backgroundColor
+            );
+
+        getWindow().setStatusBarColor(
+            backgroundColor
+        );
+
+        getWindow().setNavigationBarColor(
+            backgroundColor
+        );
+
 
         webView =
             new WebView(this);
+
+        webView.setBackgroundColor(
+            backgroundColor
+        );
+
 
         WebSettings settings =
             webView.getSettings();
@@ -3216,9 +3268,422 @@ public class MainActivity extends Activity {
             webView
         );
 
+        startMeraledServiceDiscovery();
+    }
+
+
+    /*
+     * MERALED cihazini DNS-SD / Android NSD ile bulur.
+     * Sabit IP veya WebView .local DNS cozumlemesi kullanilmaz.
+     */
+    private void startMeraledServiceDiscovery() {
+
+        meraledWebStarted = false;
+
+
+        /*
+         * Xiaomi / Android cihazlarda multicast paketlerinin
+         * filtrelenmesini engellemek icin MulticastLock.
+         */
+        try {
+
+            WifiManager manager =
+                (WifiManager)
+                getApplicationContext()
+                    .getSystemService(
+                        Context.WIFI_SERVICE
+                    );
+
+            if (manager != null) {
+
+                meraledMulticastLock =
+                    manager.createMulticastLock(
+                        "meraled-nsd-lock"
+                    );
+
+                meraledMulticastLock
+                    .setReferenceCounted(
+                        false
+                    );
+
+                meraledMulticastLock.acquire();
+            }
+
+        } catch (Exception ignored) {
+        }
+
+
+        nsdManager =
+            (NsdManager)
+            getSystemService(
+                Context.NSD_SERVICE
+            );
+
+        if (nsdManager == null) {
+
+            showMeraledConnectionError();
+            return;
+        }
+
+
+        meraledDiscoveryListener =
+            new NsdManager.DiscoveryListener() {
+
+                @Override
+                public void onDiscoveryStarted(
+                    String serviceType
+                ) {
+                }
+
+
+                @Override
+                public void onServiceFound(
+                    NsdServiceInfo serviceInfo
+                ) {
+
+                    if (
+                        serviceInfo == null
+                    ) {
+                        return;
+                    }
+
+                    String type =
+                        serviceInfo.getServiceType();
+
+                    if (
+                        type == null
+                        || !type.startsWith(
+                            "_meraled._tcp"
+                        )
+                    ) {
+                        return;
+                    }
+
+
+                    try {
+
+                        nsdManager.resolveService(
+                            serviceInfo,
+                            new NsdManager.ResolveListener() {
+
+                                @Override
+                                public void onResolveFailed(
+                                    NsdServiceInfo serviceInfo,
+                                    int errorCode
+                                ) {
+                                }
+
+
+                                @Override
+                                public void onServiceResolved(
+                                    final NsdServiceInfo resolved
+                                ) {
+
+                                    if (
+                                        resolved == null
+                                        || resolved.getHost() == null
+                                    ) {
+                                        return;
+                                    }
+
+
+                                    final String host =
+                                        resolved
+                                            .getHost()
+                                            .getHostAddress();
+
+                                    final int port =
+                                        resolved.getPort();
+
+
+                                    if (
+                                        host == null
+                                        || host.isEmpty()
+                                        || host.contains(":")
+                                        || port <= 0
+                                    ) {
+                                        return;
+                                    }
+
+
+                                    runOnUiThread(
+                                        new Runnable() {
+
+                                            @Override
+                                            public void run() {
+
+                                                openMeraledWeb(
+                                                    host,
+                                                    port
+                                                );
+                                            }
+                                        }
+                                    );
+                                }
+                            }
+                        );
+
+                    } catch (
+                        Exception ignored
+                    ) {
+                    }
+                }
+
+
+                @Override
+                public void onServiceLost(
+                    NsdServiceInfo serviceInfo
+                ) {
+                }
+
+
+                @Override
+                public void onDiscoveryStopped(
+                    String serviceType
+                ) {
+                }
+
+
+                @Override
+                public void onStartDiscoveryFailed(
+                    String serviceType,
+                    int errorCode
+                ) {
+
+                    try {
+                        nsdManager.stopServiceDiscovery(
+                            this
+                        );
+                    } catch (Exception ignored) {
+                    }
+
+                    showMeraledConnectionError();
+                }
+
+
+                @Override
+                public void onStopDiscoveryFailed(
+                    String serviceType,
+                    int errorCode
+                ) {
+                }
+            };
+
+
+        try {
+
+            nsdManager.discoverServices(
+                "_meraled._tcp.",
+                NsdManager.PROTOCOL_DNS_SD,
+                meraledDiscoveryListener
+            );
+
+        } catch (Exception ignored) {
+
+            showMeraledConnectionError();
+            return;
+        }
+
+
+        /*
+         * Sonsuza kadar bos ekranda kalma.
+         */
+        handler.postDelayed(
+            new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (
+                        !meraledWebStarted
+                    ) {
+                        showMeraledConnectionError();
+                    }
+                }
+            },
+            7000
+        );
+    }
+
+
+    private void openMeraledWeb(
+        String host,
+        int port
+    ) {
+
+        if (
+            meraledWebStarted
+            || webView == null
+        ) {
+            return;
+        }
+
+
+        meraledWebStarted = true;
+
+        String url =
+            "http://"
+            + host
+            + ":"
+            + port
+            + "/";
+
+
+        /*
+         * Son bulunan adresi sadece fallback/debug
+         * icin sakla. Kaynak kodda sabit IP yok.
+         */
+        getSharedPreferences(
+            "meraled_prefs",
+            MODE_PRIVATE
+        )
+            .edit()
+            .putString(
+                "last_meraled_url",
+                url
+            )
+            .apply();
+
+
+        stopMeraledServiceDiscovery();
 
         webView.loadUrl(
-            MERALED_MAIN_URL
+            url
+        );
+    }
+
+
+    private void stopMeraledServiceDiscovery() {
+
+        if (
+            nsdManager != null
+            && meraledDiscoveryListener != null
+        ) {
+
+            try {
+
+                nsdManager.stopServiceDiscovery(
+                    meraledDiscoveryListener
+                );
+
+            } catch (Exception ignored) {
+            }
+        }
+
+
+        meraledDiscoveryListener =
+            null;
+
+
+        if (
+            meraledMulticastLock != null
+            && meraledMulticastLock.isHeld()
+        ) {
+
+            try {
+
+                meraledMulticastLock.release();
+
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+
+    private void showMeraledConnectionError() {
+
+        runOnUiThread(
+            new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (
+                        meraledWebStarted
+                    ) {
+                        return;
+                    }
+
+
+                    /*
+                     * Daha once bulunmus dinamik adres varsa
+                     * son fallback olarak bir kez dene.
+                     */
+                    String lastUrl =
+                        getSharedPreferences(
+                            "meraled_prefs",
+                            MODE_PRIVATE
+                        ).getString(
+                            "last_meraled_url",
+                            null
+                        );
+
+
+                    if (
+                        lastUrl != null
+                        && !lastUrl.isEmpty()
+                    ) {
+
+                        meraledWebStarted =
+                            true;
+
+                        stopMeraledServiceDiscovery();
+
+                        webView.loadUrl(
+                            lastUrl
+                        );
+
+                        return;
+                    }
+
+
+                    /*
+                     * Ilk kurulum sonrasi hic cihaz
+                     * bulunamamissa koyu bir hata ekrani.
+                     */
+                    TextView errorView =
+                        new TextView(
+                            MainActivity.this
+                        );
+
+                    errorView.setText(
+                        "MERALED bağlantısı bulunamadı.\n\n"
+                        + "Telefonun MERALED ile aynı Wi-Fi "
+                        + "ağında olduğundan emin olun."
+                    );
+
+                    errorView.setTextColor(
+                        Color.parseColor(
+                            "#F3F6F4"
+                        )
+                    );
+
+                    errorView.setTextSize(
+                        17
+                    );
+
+                    errorView.setGravity(
+                        Gravity.CENTER
+                    );
+
+                    errorView.setPadding(
+                        dp(32),
+                        dp(32),
+                        dp(32),
+                        dp(32)
+                    );
+
+                    errorView.setBackgroundColor(
+                        Color.parseColor(
+                            "#07101B"
+                        )
+                    );
+
+                    setContentView(
+                        errorView
+                    );
+                }
+            }
         );
     }
 
@@ -3999,6 +4464,279 @@ public class MainActivity extends Activity {
     }
 
 
+
+    /*
+     * WIFI_STATUS read fallback.
+     *
+     * Normal akış BLE notification'dır.
+     * Notification kaçarsa WIFI_STATUS karakteristiğini
+     * belirli aralıklarla tekrar okur.
+     */
+    private void startWifiStatusPolling() {
+
+        wifiStatusPollingActive = true;
+        wifiStatusPollAttempts = 0;
+
+        scheduleWifiStatusPoll();
+    }
+
+
+    private void scheduleWifiStatusPoll() {
+
+        if (
+            !wifiStatusPollingActive
+            || setupWifiConnected
+        ) {
+            return;
+        }
+
+        handler.postDelayed(
+            new Runnable() {
+                @Override
+                public void run() {
+
+                    if (
+                        !wifiStatusPollingActive
+                        || setupWifiConnected
+                    ) {
+                        return;
+                    }
+
+                    if (
+                        bluetoothGatt == null
+                        || wifiStatusCharacteristic == null
+                    ) {
+                        wifiStatusPollingActive = false;
+
+                        statusText.setText(
+                            "Wi-Fi durum bağlantısı kullanılamıyor."
+                        );
+
+                        wifiConnectButton.setEnabled(
+                            true
+                        );
+
+                        stylePrimaryButton(
+                            wifiConnectButton,
+                            true
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        wifiStatusPollAttempts
+                        >= WIFI_STATUS_POLL_MAX_ATTEMPTS
+                    ) {
+                        wifiStatusPollingActive = false;
+
+                        statusText.setText(
+                            "Wi-Fi bağlantı sonucu alınamadı. "
+                            + "Tekrar deneyin."
+                        );
+
+                        wifiConnectButton.setEnabled(
+                            true
+                        );
+
+                        stylePrimaryButton(
+                            wifiConnectButton,
+                            true
+                        );
+
+                        return;
+                    }
+
+                    wifiStatusPollAttempts++;
+
+                    boolean started = false;
+
+                    try {
+                        started =
+                            bluetoothGatt.readCharacteristic(
+                                wifiStatusCharacteristic
+                            );
+                    } catch (Exception ignored) {
+                    }
+
+                    /*
+                     * readCharacteristic başlatılamadıysa
+                     * bir sonraki denemeyi planla.
+                     *
+                     * Başarılı başladıysa devamı
+                     * onCharacteristicRead callback'inden gelir.
+                     */
+                    if (!started) {
+                        scheduleWifiStatusPoll();
+                    }
+                }
+            },
+            WIFI_STATUS_POLL_INTERVAL_MS
+        );
+    }
+
+
+    private void handleWifiStatusFallback(
+        String response
+    ) {
+
+        if (response == null) {
+            return;
+        }
+
+        response = response.trim();
+
+        if (
+            response.startsWith(
+                "WIFI_CONNECTED="
+            )
+            || response.startsWith(
+                "IP="
+            )
+        ) {
+
+            String ip;
+
+            if (
+                response.startsWith(
+                    "IP="
+                )
+            ) {
+                ip =
+                    response.substring(
+                        "IP=".length()
+                    );
+            } else {
+                ip =
+                    response.substring(
+                        "WIFI_CONNECTED=".length()
+                    );
+            }
+
+            wifiStatusPollingActive = false;
+
+            statusText.setText(
+                "Wi-Fi bağlantısı başarılı. IP: "
+                + ip
+            );
+
+            setupWifiConnected = true;
+
+            setupWifiSsid =
+                pendingWifiSsid;
+
+            setupWifiIp =
+                ip;
+
+            updateCompleteSummary();
+
+            if (wifiNextButton != null) {
+
+                wifiNextButton.setEnabled(
+                    true
+                );
+
+                stylePrimaryButton(
+                    wifiNextButton,
+                    true
+                );
+            }
+
+            pendingWifiPassword =
+                null;
+
+            pendingWifiSsid =
+                null;
+
+            if (
+                wifiPasswordInput != null
+            ) {
+                wifiPasswordInput.setText(
+                    ""
+                );
+            }
+
+            wifiConnectButton.setEnabled(
+                true
+            );
+
+            stylePrimaryButton(
+                wifiConnectButton,
+                true
+            );
+
+            return;
+        }
+
+
+        if (
+            "WIFI_FAILED".equals(
+                response
+            )
+        ) {
+
+            wifiStatusPollingActive = false;
+            setupWifiConnected = false;
+
+            statusText.setText(
+                "Wi-Fi bağlantısı kurulamadı. "
+                + "Ağ adı ve şifreyi kontrol edin."
+            );
+
+            if (wifiNextButton != null) {
+
+                wifiNextButton.setEnabled(
+                    false
+                );
+
+                stylePrimaryButton(
+                    wifiNextButton,
+                    false
+                );
+            }
+
+            pendingWifiPassword =
+                null;
+
+            pendingWifiSsid =
+                null;
+
+            wifiConnectButton.setEnabled(
+                true
+            );
+
+            stylePrimaryButton(
+                wifiConnectButton,
+                true
+            );
+
+            return;
+        }
+
+
+        if (
+            "WIFI_CONNECT_QUEUED".equals(
+                response
+            )
+        ) {
+
+            statusText.setText(
+                "Wi-Fi bağlantısı hazırlanıyor..."
+            );
+
+        } else if (
+            "WIFI_CONNECTING".equals(
+                response
+            )
+        ) {
+
+            statusText.setText(
+                "Wi-Fi ağına bağlanılıyor..."
+            );
+        }
+    }
+
+
     private void startWifiProvisioning() {
 
         if (
@@ -4569,10 +5307,79 @@ public class MainActivity extends Activity {
                                 statusText.setText(
                                     "Wi-Fi bağlantı sonucu bekleniyor..."
                                 );
+
+                                startWifiStatusPolling();
                             }
                         }
                     );
                 }
+            }
+
+
+            @Override
+            public void onCharacteristicRead(
+                final BluetoothGatt gatt,
+                final BluetoothGattCharacteristic characteristic,
+                final int status
+            ) {
+
+                if (
+                    characteristic == null
+                    || !WIFI_STATUS_UUID.equals(
+                        characteristic.getUuid()
+                    )
+                ) {
+                    return;
+                }
+
+                if (
+                    status != BluetoothGatt.GATT_SUCCESS
+                ) {
+
+                    runOnUiThread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+
+                                if (
+                                    wifiStatusPollingActive
+                                    && !setupWifiConnected
+                                ) {
+                                    scheduleWifiStatusPoll();
+                                }
+                            }
+                        }
+                    );
+
+                    return;
+                }
+
+                byte[] raw =
+                    characteristic.getValue();
+
+                final String response =
+                    raw == null
+                    ? ""
+                    : new String(raw).trim();
+
+                runOnUiThread(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+
+                            handleWifiStatusFallback(
+                                response
+                            );
+
+                            if (
+                                wifiStatusPollingActive
+                                && !setupWifiConnected
+                            ) {
+                                scheduleWifiStatusPoll();
+                            }
+                        }
+                    }
+                );
             }
 
 
@@ -4777,6 +5584,9 @@ public class MainActivity extends Activity {
                                     )
                                 ) {
 
+                                    wifiStatusPollingActive =
+                                        false;
+
                                     String ip;
 
                                     if (
@@ -4858,6 +5668,9 @@ public class MainActivity extends Activity {
                                 } else if (
                                     "WIFI_FAILED".equals(response)
                                 ) {
+
+                                    wifiStatusPollingActive =
+                                        false;
 
                                     statusText.setText(
                                         "Wi-Fi bağlantısı kurulamadı. "
