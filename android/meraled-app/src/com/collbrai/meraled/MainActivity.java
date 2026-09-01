@@ -68,11 +68,14 @@ public class MainActivity extends Activity {
     private EditText setupPinInput;
 
     private LinearLayout wifiSetupSection;
+    private TextView wifiDescription;
     private EditText wifiSsidInput;
     private EditText wifiPasswordInput;
     private Button wifiConnectButton;
 
     private LinearLayout wifiNetworkList;
+    private ScrollView wifiNetworkScroll;
+    private Button selectedWifiNetworkButton;
     private TextView wifiNetworkStatusText;
     private TextView wifiSelectedNetworkText;
     private Button wifiRescanButton;
@@ -208,6 +211,11 @@ public class MainActivity extends Activity {
             new ScrollView(this);
 
         scrollView.setFillViewport(true);
+        scrollView.setVerticalScrollBarEnabled(false);
+        scrollView.setOverScrollMode(
+            View.OVER_SCROLL_NEVER
+        );
+
         scrollView.setBackgroundColor(
             Color.parseColor("#071321")
         );
@@ -220,10 +228,10 @@ public class MainActivity extends Activity {
         );
 
         root.setPadding(
-            dp(24),
-            dp(42),
-            dp(24),
-            dp(32)
+            dp(18),
+            dp(18),
+            dp(18),
+            dp(12)
         );
 
         root.setBackgroundColor(
@@ -264,7 +272,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams logoParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(68)
+                dp(48)
             );
 
         logoParams.gravity =
@@ -286,7 +294,7 @@ public class MainActivity extends Activity {
             "SMART SHOWCASE LIGHTING"
         );
 
-        subtitle.setTextSize(11);
+        subtitle.setTextSize(10);
 
         subtitle.setTextColor(
             Color.parseColor("#7589A7")
@@ -307,7 +315,7 @@ public class MainActivity extends Activity {
             );
 
         subtitleParams.topMargin =
-            dp(5);
+            dp(2);
 
         root.addView(
             subtitle,
@@ -969,14 +977,24 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams pinInputParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(56)
+                dp(48)
             );
 
-        pinInputParams.topMargin = dp(9);
+        pinInputParams.topMargin = dp(6);
 
         setupStepBle.addView(
             setupPinInput,
             pinInputParams
+        );
+
+        /*
+         * Tarama + Baglan aksiyonlari
+         */
+        LinearLayout bleActionRow =
+            new LinearLayout(this);
+
+        bleActionRow.setOrientation(
+            LinearLayout.HORIZONTAL
         );
 
         /*
@@ -989,7 +1007,7 @@ public class MainActivity extends Activity {
             "CİHAZLARI TARA"
         );
 
-        scanButton.setTextSize(14);
+        scanButton.setTextSize(12);
         scanButton.setAllCaps(false);
         scanButton.setGravity(Gravity.CENTER);
         scanButton.setPadding(0, 0, 0, 0);
@@ -1001,13 +1019,15 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams scanParams =
             new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(58)
+                0,
+                dp(46),
+                1.0f
             );
 
-        scanParams.topMargin = dp(24);
+        scanParams.rightMargin =
+            dp(5);
 
-        setupStepBle.addView(
+        bleActionRow.addView(
             scanButton,
             scanParams
         );
@@ -1022,7 +1042,7 @@ public class MainActivity extends Activity {
             "CİHAZA BAĞLAN"
         );
 
-        connectButton.setTextSize(14);
+        connectButton.setTextSize(12);
         connectButton.setAllCaps(false);
         connectButton.setGravity(Gravity.CENTER);
         connectButton.setPadding(0, 0, 0, 0);
@@ -1036,15 +1056,31 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams connectParams =
             new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(58)
+                0,
+                dp(46),
+                1.0f
             );
 
-        connectParams.topMargin = dp(12);
+        connectParams.leftMargin =
+            dp(5);
 
-        setupStepBle.addView(
+        bleActionRow.addView(
             connectButton,
             connectParams
+        );
+
+        LinearLayout.LayoutParams bleActionRowParams =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(46)
+            );
+
+        bleActionRowParams.topMargin =
+            dp(12);
+
+        setupStepBle.addView(
+            bleActionRow,
+            bleActionRowParams
         );
 
 
@@ -1073,10 +1109,10 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams bleNextParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(56)
+                dp(46)
             );
 
-        bleNextParams.topMargin = dp(18);
+        bleNextParams.topMargin = dp(10);
 
         setupStepBle.addView(
             bleNextButton,
@@ -1152,7 +1188,7 @@ public class MainActivity extends Activity {
         );
 
 
-        TextView wifiDescription =
+        wifiDescription =
             new TextView(this);
 
         wifiDescription.setText(
@@ -1210,6 +1246,22 @@ public class MainActivity extends Activity {
         );
 
 
+        wifiNetworkScroll =
+            new ScrollView(this);
+
+        wifiNetworkScroll.setFillViewport(
+            false
+        );
+
+        wifiNetworkScroll.setVerticalScrollBarEnabled(
+            false
+        );
+
+        wifiNetworkScroll.setOverScrollMode(
+            View.OVER_SCROLL_NEVER
+        );
+
+
         wifiNetworkList =
             new LinearLayout(this);
 
@@ -1217,17 +1269,26 @@ public class MainActivity extends Activity {
             LinearLayout.VERTICAL
         );
 
+        wifiNetworkScroll.addView(
+            wifiNetworkList,
+            new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT
+            )
+        );
+
+
         LinearLayout.LayoutParams wifiListParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                dp(180)
             );
 
         wifiListParams.topMargin =
-            dp(8);
+            dp(6);
 
         wifiSetupSection.addView(
-            wifiNetworkList,
+            wifiNetworkScroll,
             wifiListParams
         );
 
@@ -1235,8 +1296,14 @@ public class MainActivity extends Activity {
         wifiRescanButton =
             new Button(this);
 
+        /*
+         * WIFI_SCAN_BUTTON_LOGIC_V1
+         *
+         * İlk kullanımda henüz tarama yapılmadığı için
+         * "YENİDEN TARA" yerine eylemi doğru anlat.
+         */
         wifiRescanButton.setText(
-            "YENİDEN TARA"
+            "AĞLARI TARA"
         );
 
         wifiRescanButton.setTextSize(13);
@@ -1309,6 +1376,10 @@ public class MainActivity extends Activity {
         wifiSetupSection.addView(
             wifiSelectedNetworkText,
             selectedNetworkParams
+        );
+
+        wifiSelectedNetworkText.setVisibility(
+            View.GONE
         );
 
 
@@ -1452,14 +1523,18 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams wifiPasswordParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(56)
+                dp(48)
             );
 
-        wifiPasswordParams.topMargin = dp(10);
+        wifiPasswordParams.topMargin = dp(8);
 
         wifiSetupSection.addView(
             wifiPasswordInput,
             wifiPasswordParams
+        );
+
+        wifiPasswordInput.setVisibility(
+            View.GONE
         );
 
 
@@ -1499,14 +1574,18 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams wifiButtonParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(58)
+                dp(46)
             );
 
-        wifiButtonParams.topMargin = dp(14);
+        wifiButtonParams.topMargin = dp(8);
 
         wifiSetupSection.addView(
             wifiConnectButton,
             wifiButtonParams
+        );
+
+        wifiConnectButton.setVisibility(
+            View.GONE
         );
 
 
@@ -1529,6 +1608,95 @@ public class MainActivity extends Activity {
             new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
+                    /*
+                     * Liste kapalıysa bağlantı veya elle giriş
+                     * görünümünden ağ seçimine dön.
+                     */
+                    if (
+                        wifiNetworkScroll.getVisibility()
+                            == View.GONE
+                    ) {
+
+                        selectedWifiSsid =
+                            null;
+
+                        wifiSelectedNetworkText.setText(
+                            "Seçilen ağ: Henüz seçilmedi"
+                        );
+
+                        wifiSelectedNetworkText.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiSsidInput.setText(
+                            ""
+                        );
+
+                        wifiSsidInput.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiPasswordInput.setText(
+                            ""
+                        );
+
+                        wifiPasswordInput.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiConnectButton.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiManualButton.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiDescription.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiNetworkStatusText.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiNetworkScroll.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiRescanButton.setText(
+                            "YENİDEN TARA"
+                        );
+
+                        if (
+                            selectedWifiNetworkButton
+                                != null
+                        ) {
+
+                            selectedWifiNetworkButton
+                                .setBackground(
+                                    roundedBackground(
+                                        "#0D1D30",
+                                        "#25415F",
+                                        16
+                                    )
+                                );
+
+                            selectedWifiNetworkButton
+                                .setElevation(
+                                    dp(1)
+                                );
+
+                            selectedWifiNetworkButton =
+                                null;
+                        }
+
+                        statusText.setText(
+                            "Wi-Fi ağlarından birini seçin."
+                        );
+                    }
+
                     startWifiScan();
                 }
             }
@@ -1540,14 +1708,51 @@ public class MainActivity extends Activity {
                 @Override
                 public void onClick(View view) {
 
+                    selectedWifiSsid =
+                        null;
+
+                    wifiNetworkScroll.setVisibility(
+                        View.GONE
+                    );
+
+                    wifiNetworkStatusText.setVisibility(
+                        View.GONE
+                    );
+
+                    wifiDescription.setVisibility(
+                        View.GONE
+                    );
+
+                    wifiManualButton.setVisibility(
+                        View.GONE
+                    );
+
+                    wifiSelectedNetworkText.setText(
+                        "Wi-Fi ağı elle giriliyor"
+                    );
+
+                    wifiSelectedNetworkText.setVisibility(
+                        View.VISIBLE
+                    );
+
                     wifiSsidInput.setVisibility(
                         View.VISIBLE
                     );
 
-                    wifiSsidInput.requestFocus();
+                    wifiPasswordInput.setVisibility(
+                        View.VISIBLE
+                    );
 
-                    wifiSelectedNetworkText.setText(
-                        "Ağ adı elle giriliyor."
+                    wifiConnectButton.setVisibility(
+                        View.VISIBLE
+                    );
+
+                    wifiRescanButton.setText(
+                        "AĞ LİSTESİNE DÖN"
+                    );
+
+                    statusText.setText(
+                        "Wi-Fi ağ adını ve şifresini girin."
                     );
                 }
             }
@@ -1567,10 +1772,10 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams wifiNavParams =
             new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(56)
+                dp(46)
             );
 
-        wifiNavParams.topMargin = dp(16);
+        wifiNavParams.topMargin = dp(10);
 
 
         wifiBackButton =
@@ -1710,25 +1915,94 @@ public class MainActivity extends Activity {
             dp(28);
 
 
+        TextView completeStatusBadge =
+            new TextView(this);
+
+        completeStatusBadge.setText(
+            "KURULUM TAMAMLANDI"
+        );
+
+        completeStatusBadge.setTextSize(
+            10
+        );
+
+        completeStatusBadge.setLetterSpacing(
+            0.12f
+        );
+
+        completeStatusBadge.setTextColor(
+            Color.parseColor("#79E1A7")
+        );
+
+        completeStatusBadge.setGravity(
+            Gravity.CENTER
+        );
+
+        completeStatusBadge.setPadding(
+            dp(14),
+            dp(7),
+            dp(14),
+            dp(7)
+        );
+
+        completeStatusBadge.setBackground(
+            roundedBackground(
+                "#0D2A25",
+                "#286B4B",
+                16
+            )
+        );
+
+        LinearLayout.LayoutParams completeBadgeParams =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+
+        completeBadgeParams.gravity =
+            Gravity.CENTER_HORIZONTAL;
+
+        completeCard.addView(
+            completeStatusBadge,
+            completeBadgeParams
+        );
+
+
         TextView completeTitle =
             new TextView(this);
 
         completeTitle.setText(
-            "✓  MERALED HAZIR"
+            "MERALED HAZIR"
         );
 
-        completeTitle.setTextSize(22);
+        completeTitle.setTextSize(
+            24
+        );
 
         completeTitle.setTextColor(
-            Color.parseColor("#2EBE6E")
+            Color.parseColor("#F4F7FC")
         );
 
         completeTitle.setGravity(
             Gravity.CENTER
         );
 
+        completeTitle.setLetterSpacing(
+            0.04f
+        );
+
+        LinearLayout.LayoutParams completeTitleParams =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+
+        completeTitleParams.topMargin =
+            dp(16);
+
         completeCard.addView(
-            completeTitle
+            completeTitle,
+            completeTitleParams
         );
 
 
@@ -1736,7 +2010,7 @@ public class MainActivity extends Activity {
             new TextView(this);
 
         completeDescription.setText(
-            "Cihaz bağlantısı ve Wi-Fi kurulumu başarıyla tamamlandı."
+            "MERALED ağa bağlandı ve kullanıma hazır."
         );
 
         completeDescription.setTextSize(14);
@@ -1761,6 +2035,40 @@ public class MainActivity extends Activity {
         completeCard.addView(
             completeDescription,
             completeDescParams
+        );
+
+
+        TextView completeSummaryLabel =
+            new TextView(this);
+
+        completeSummaryLabel.setText(
+            "BAĞLANTI ÖZETİ"
+        );
+
+        completeSummaryLabel.setTextSize(
+            10
+        );
+
+        completeSummaryLabel.setLetterSpacing(
+            0.14f
+        );
+
+        completeSummaryLabel.setTextColor(
+            Color.parseColor("#6687B5")
+        );
+
+        LinearLayout.LayoutParams completeSummaryLabelParams =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+
+        completeSummaryLabelParams.topMargin =
+            dp(24);
+
+        completeCard.addView(
+            completeSummaryLabel,
+            completeSummaryLabelParams
         );
 
 
@@ -1799,7 +2107,7 @@ public class MainActivity extends Activity {
             );
 
         summaryParams.topMargin =
-            dp(22);
+            dp(8);
 
         completeCard.addView(
             completeSummaryText,
@@ -1938,41 +2246,6 @@ public class MainActivity extends Activity {
             }
         );
 
-        /*
-         * Bilgilendirme
-         */
-        TextView info =
-            new TextView(this);
-
-        info.setText(
-            "İlk kurulum sırasında telefonunuz Bluetooth "
-            + "üzerinden MERALED kontrol ünitesini bulur. "
-            + "Cihaz algılandığında bağlantı butonu otomatik "
-            + "olarak aktif olacaktır."
-        );
-
-        info.setTextSize(13);
-        info.setTextColor(
-            Color.parseColor("#718096")
-        );
-
-        info.setLineSpacing(
-            0.0f,
-            1.18f
-        );
-
-        LinearLayout.LayoutParams infoParams =
-            new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-
-        infoParams.topMargin = dp(24);
-
-        setupStepBle.addView(
-            info,
-            infoParams
-        );
 
         scanButton.setOnClickListener(
             new View.OnClickListener() {
@@ -2326,7 +2599,7 @@ public class MainActivity extends Activity {
             wizardStepLineOne.setBackgroundColor(
                 Color.parseColor(
                     step >= 2
-                    ? "#2E7BEF"
+                    ? "#2EBE6E"
                     : "#23364E"
                 )
             );
@@ -2478,6 +2751,18 @@ public class MainActivity extends Activity {
         }
 
 
+        if (wifiRescanButton != null) {
+
+            wifiRescanButton.setText(
+                "TARANIYOR..."
+            );
+
+            wifiRescanButton.setEnabled(
+                false
+            );
+        }
+
+
         boolean scanStarted = false;
 
         try {
@@ -2485,7 +2770,47 @@ public class MainActivity extends Activity {
             scanStarted =
                 wifiManager.startScan();
 
+            /*
+             * Android Wi-Fi taraması asenkron çalışır.
+             * Kullanıcıya kısa süre tarama durumunu göster,
+             * sonra yeniden tarama eylemini aç.
+             */
+            handler.postDelayed(
+                new Runnable() {
+                    @Override
+                    public void run() {
+
+                        if (
+                            wifiRescanButton != null
+                            && wifiNetworkScroll != null
+                            && wifiNetworkScroll.getVisibility()
+                                == View.VISIBLE
+                            && selectedWifiSsid == null
+                        ) {
+
+                            wifiRescanButton.setText(
+                                "YENİDEN TARA"
+                            );
+
+                            wifiRescanButton.setEnabled(
+                                true
+                            );
+                        }
+                    }
+                },
+                1200
+            );
+
         } catch (SecurityException exc) {
+
+            if (wifiRescanButton != null) {
+                wifiRescanButton.setText(
+                    "AĞLARI TARA"
+                );
+                wifiRescanButton.setEnabled(
+                    true
+                );
+            }
 
             statusText.setText(
                 "Wi-Fi tarama izni kullanılamadı."
@@ -2494,6 +2819,15 @@ public class MainActivity extends Activity {
             return;
 
         } catch (Exception exc) {
+
+            if (wifiRescanButton != null) {
+                wifiRescanButton.setText(
+                    "AĞLARI TARA"
+                );
+                wifiRescanButton.setEnabled(
+                    true
+                );
+            }
 
             statusText.setText(
                 "Wi-Fi taraması başlatılamadı."
@@ -2674,14 +3008,14 @@ public class MainActivity extends Activity {
             );
 
             networkButton.setPadding(
-                dp(16),
-                0,
-                dp(16),
-                0
+                dp(18),
+                dp(8),
+                dp(18),
+                dp(8)
             );
 
             networkButton.setTextColor(
-                Color.parseColor("#F5F7FB")
+                Color.parseColor("#F4F7FC")
             );
 
             networkButton.setTextSize(
@@ -2690,23 +3024,27 @@ public class MainActivity extends Activity {
 
             networkButton.setText(
                 ssid
-                + "     "
+                + "\nWi-Fi  •  "
                 + wifiSignalLabel(level)
             );
 
             networkButton.setBackground(
                 roundedBackground(
-                    "#0E1E31",
-                    "#203A59",
-                    14
+                    "#0D1D30",
+                    "#25415F",
+                    16
                 )
+            );
+
+            networkButton.setElevation(
+                dp(1)
             );
 
 
             LinearLayout.LayoutParams networkParams =
                 new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(54)
+                    dp(58)
                 );
 
             networkParams.topMargin =
@@ -2719,6 +3057,38 @@ public class MainActivity extends Activity {
                     public void onClick(
                         View view
                     ) {
+
+                        if (
+                            selectedWifiNetworkButton != null
+                            && selectedWifiNetworkButton != networkButton
+                        ) {
+                            selectedWifiNetworkButton.setBackground(
+                                roundedBackground(
+                                    "#0D1D30",
+                                    "#25415F",
+                                    16
+                                )
+                            );
+
+                            selectedWifiNetworkButton.setElevation(
+                                dp(1)
+                            );
+                        }
+
+                        selectedWifiNetworkButton =
+                            networkButton;
+
+                        networkButton.setBackground(
+                            roundedBackground(
+                                "#102640",
+                                "#4C88F7",
+                                16
+                            )
+                        );
+
+                        networkButton.setElevation(
+                            dp(4)
+                        );
 
                         selectedWifiSsid =
                             ssid;
@@ -2736,8 +3106,44 @@ public class MainActivity extends Activity {
                             + ssid
                         );
 
+                        /*
+                         * AG SECILDI:
+                         * Liste görünümü bağlantı formuyla yer değiştirir.
+                         */
+                        wifiNetworkScroll.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiNetworkStatusText.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiDescription.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiManualButton.setVisibility(
+                            View.GONE
+                        );
+
+                        wifiSelectedNetworkText.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiPasswordInput.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiConnectButton.setVisibility(
+                            View.VISIBLE
+                        );
+
+                        wifiRescanButton.setText(
+                            "AĞI DEĞİŞTİR"
+                        );
+
                         statusText.setText(
-                            "Wi-Fi ağı seçildi. Şifreyi girin."
+                            "Ağ seçildi. Wi-Fi şifresini girin."
                         );
                     }
                 }
@@ -2757,18 +3163,18 @@ public class MainActivity extends Activity {
     ) {
 
         if (level >= -55) {
-            return "●●●●";
+            return "ÇOK İYİ";
         }
 
         if (level >= -65) {
-            return "●●●○";
+            return "İYİ";
         }
 
         if (level >= -75) {
-            return "●●○○";
+            return "ORTA";
         }
 
-        return "●○○○";
+        return "ZAYIF";
     }
 
 
@@ -4366,12 +4772,28 @@ public class MainActivity extends Activity {
                                     response.startsWith(
                                         "WIFI_CONNECTED="
                                     )
+                                    || response.startsWith(
+                                        "IP="
+                                    )
                                 ) {
 
-                                    String ip =
-                                        response.substring(
-                                            "WIFI_CONNECTED=".length()
-                                        );
+                                    String ip;
+
+                                    if (
+                                        response.startsWith(
+                                            "IP="
+                                        )
+                                    ) {
+                                        ip =
+                                            response.substring(
+                                                "IP=".length()
+                                            );
+                                    } else {
+                                        ip =
+                                            response.substring(
+                                                "WIFI_CONNECTED=".length()
+                                            );
+                                    }
 
                                     statusText.setText(
                                         "Wi-Fi bağlantısı başarılı. IP: "
@@ -4628,11 +5050,31 @@ public class MainActivity extends Activity {
                     stopBleScan();
 
                     deviceText.setText(
-                        "✓ " + deviceName
+                        deviceName + "\nBLUETOOTH  •  BULUNDU"
+                    );
+
+                    deviceText.setTextSize(
+                        16
+                    );
+
+                    deviceText.setTextColor(
+                        Color.parseColor("#F4F7FC")
+                    );
+
+                    deviceText.setBackground(
+                        roundedBackground(
+                            "#10243A",
+                            "#2EBE6E",
+                            16
+                        )
+                    );
+
+                    deviceText.setElevation(
+                        dp(3)
                     );
 
                     statusText.setText(
-                        "Durum: MERALED cihazı bulundu."
+                        "MERALED kontrol ünitesi hazır."
                     );
 
                     scanButton.setEnabled(true);

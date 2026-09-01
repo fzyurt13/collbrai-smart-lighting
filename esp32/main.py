@@ -513,7 +513,7 @@ while True:
 
                     ble_provisioning.set_wifi_status(
                         conn_handle,
-                        "WIFI_CONNECTED={}".format(
+                        "IP={}".format(
                             wifi_ip
                         )
                     )

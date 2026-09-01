@@ -402,6 +402,155 @@ h1 {
     color: var(--green);
 }
 
+
+/* MERALED PROFILE MOBILE FIT V1 */
+@media (max-width: 600px) {
+
+    html,
+    body {
+        margin: 0;
+        overscroll-behavior-y: none;
+    }
+
+    .page {
+        width: 100%;
+        min-height: 100dvh;
+
+        padding:
+            40px
+            18px
+            calc(10px + env(safe-area-inset-bottom));
+    }
+
+    /*
+     * Settings ile aynı üst hizaya yakın.
+     */
+    .topbar {
+        min-height: 38px;
+    }
+
+    .back {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+    }
+
+    .logo {
+        width: 138px;
+    }
+
+    .spacer {
+        width: 38px;
+    }
+
+    /*
+     * Başlık
+     */
+    .header {
+        margin-top: 10px;
+    }
+
+    .eyebrow {
+        font-size: 9px;
+        letter-spacing: 1.45px;
+    }
+
+    h1 {
+        margin: 5px 0 3px;
+        font-size: 26px;
+        line-height: 1.05;
+    }
+
+    .subtitle {
+        font-size: 10.5px;
+        line-height: 1.3;
+    }
+
+    /*
+     * Store Operator ana kartı.
+     * Kart hâlâ güçlü görünsün fakat gereksiz yüksek olmasın.
+     */
+    .profile-card {
+        margin-top: 14px;
+        padding: 15px 18px;
+        border-radius: 17px;
+    }
+
+    .avatar {
+        width: 58px;
+        height: 58px;
+
+        margin:
+            0
+            auto
+            9px;
+
+        border-radius: 18px;
+        font-size: 21px;
+    }
+
+    .profile-name {
+        font-size: 18px;
+    }
+
+    .profile-role {
+        margin-top: 3px;
+        font-size: 9px;
+    }
+
+    .status {
+        margin-top: 9px;
+        padding: 6px 10px;
+        font-size: 9px;
+    }
+
+    /*
+     * ACCESS ve diğer bölümler.
+     */
+    .section {
+        margin-top: 12px;
+    }
+
+    .section-title {
+        margin-bottom: 6px;
+        font-size: 9.5px;
+    }
+
+    .card {
+        border-radius: 16px;
+    }
+
+    .row {
+        min-height: 49px;
+        padding: 7px 13px;
+        gap: 11px;
+    }
+
+    .row-name {
+        font-size: 13px;
+        line-height: 1.15;
+    }
+
+    .row-sub {
+        margin-top: 2px;
+        font-size: 9.5px;
+        line-height: 1.15;
+    }
+
+    .value {
+        font-size: 11px;
+    }
+
+    .chevron {
+        font-size: 18px;
+    }
+
+    .footer {
+        margin-top: 9px;
+        font-size: 8px;
+    }
+}
+
 </style>
 </head>
 

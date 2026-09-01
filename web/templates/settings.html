@@ -201,6 +201,511 @@ h1 {
 .version strong {
     color: #6385b4;
 }
+
+/* MERALED SETTINGS MOBILE COMPACT V1 */
+@media (max-width: 600px) {
+
+    html,
+    body {
+        margin: 0;
+        overscroll-behavior-y: none;
+    }
+
+    .page {
+        width: 100%;
+        min-height: 100dvh;
+        padding:
+            12px
+            18px
+            calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+        min-height: 34px;
+    }
+
+    .back {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        font-size: 17px;
+    }
+
+    .logo {
+        width: 126px;
+    }
+
+    .spacer {
+        width: 34px;
+    }
+
+    .header {
+        margin-top: 12px;
+    }
+
+    h1 {
+        margin: 4px 0 2px;
+        font-size: 24px;
+        line-height: 1.05;
+    }
+
+    .header .eyebrow {
+        font-size: 8px;
+        letter-spacing: 1.4px;
+    }
+
+    .subtitle {
+        font-size: 9px;
+        line-height: 1.35;
+    }
+
+    .section {
+        margin-top: 11px;
+    }
+
+    .section-title {
+        margin-bottom: 5px;
+        font-size: 8px;
+        letter-spacing: 1.15px;
+    }
+
+    .card {
+        border-radius: 14px;
+    }
+
+    .row {
+        min-height: 47px;
+        padding: 7px 12px;
+        gap: 10px;
+    }
+
+    .row-name {
+        font-size: 11px;
+    }
+
+    .row-sub {
+        margin-top: 2px;
+        font-size: 8px;
+        line-height: 1.15;
+    }
+
+    .value {
+        font-size: 9px;
+    }
+
+    .online {
+        gap: 5px;
+    }
+
+    .online-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .chevron {
+        font-size: 16px;
+    }
+
+    .version {
+        margin-top: 9px;
+        font-size: 7px;
+    }
+}
+
+
+/* MERALED SETTINGS BALANCE V2 */
+@media (max-width: 600px) {
+
+    /*
+     * Logo ve geri butonu status bar'dan ayrı dursun.
+     */
+    .page {
+        padding-top: 20px;
+        padding-bottom:
+            calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .logo {
+        width: 132px;
+    }
+
+    /*
+     * Üst başlık korunuyor fakat fazla yer tüketmiyor.
+     */
+    .header {
+        margin-top: 8px;
+    }
+
+    h1 {
+        margin: 3px 0 1px;
+        font-size: 23px;
+    }
+
+    .subtitle {
+        font-size: 8.5px;
+        line-height: 1.25;
+    }
+
+    /*
+     * Bölümleri az miktarda daha kompaktlaştır.
+     * Görsel kaliteyi bozacak kadar sıkıştırmıyoruz.
+     */
+    .section {
+        margin-top: 8px;
+    }
+
+    .section-title {
+        margin-bottom: 4px;
+    }
+
+    .row {
+        min-height: 43px;
+        padding: 6px 11px;
+    }
+
+    .row-name {
+        font-size: 10.5px;
+    }
+
+    .row-sub {
+        margin-top: 1px;
+        font-size: 7.8px;
+    }
+
+    .value {
+        font-size: 8.5px;
+    }
+
+    .version {
+        margin-top: 6px;
+    }
+}
+
+
+/* MERALED SETTINGS READABILITY V3 */
+@media (max-width: 600px) {
+
+    /*
+     * Üst bölüm aynı tasarımda kalıyor.
+     * Birkaç dikey piksel kazanıp yazılara aktarıyoruz.
+     */
+    .header {
+        margin-top: 6px;
+    }
+
+    h1 {
+        margin: 2px 0 1px;
+        font-size: 24px;
+    }
+
+    .header .eyebrow {
+        font-size: 8.5px;
+    }
+
+    .subtitle {
+        font-size: 9.5px;
+        line-height: 1.2;
+    }
+
+
+    /*
+     * Bölümler birbirinden hâlâ seçilsin,
+     * fakat gereksiz boşluk üretmesin.
+     */
+    .section {
+        margin-top: 6px;
+    }
+
+    .section-title {
+        margin-bottom: 3px;
+        font-size: 8.5px;
+        letter-spacing: 1.2px;
+    }
+
+
+    /*
+     * Satır yüksekliğini koruyup metni büyüt.
+     */
+    .row {
+        min-height: 42px;
+        padding: 5px 11px;
+        gap: 9px;
+    }
+
+    .row-name {
+        font-size: 11.5px;
+        line-height: 1.15;
+        font-weight: 750;
+    }
+
+    .row-sub {
+        margin-top: 2px;
+        font-size: 8.6px;
+        line-height: 1.15;
+    }
+
+    .value {
+        font-size: 9.6px;
+        line-height: 1.1;
+    }
+
+    .online {
+        gap: 6px;
+    }
+
+    .online-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .chevron {
+        font-size: 17px;
+    }
+
+    .version {
+        margin-top: 4px;
+        font-size: 7.5px;
+    }
+}
+
+
+/* MERALED SETTINGS READABILITY V4 */
+@media (max-width: 600px) {
+
+    /*
+     * Ust alan
+     */
+    .page {
+        padding-top: 20px;
+        padding-left: 18px;
+        padding-right: 18px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .logo {
+        width: 136px;
+    }
+
+    .header {
+        margin-top: 7px;
+    }
+
+    .header .eyebrow {
+        font-size: 9px;
+        letter-spacing: 1.4px;
+    }
+
+    h1 {
+        margin: 3px 0 2px;
+        font-size: 26px;
+        line-height: 1.05;
+    }
+
+    .subtitle {
+        font-size: 10.5px;
+        line-height: 1.2;
+    }
+
+    /*
+     * Bolum basliklari
+     */
+    .section {
+        margin-top: 7px;
+    }
+
+    .section-title {
+        margin-bottom: 4px;
+        font-size: 9.5px;
+        letter-spacing: 1.25px;
+    }
+
+    /*
+     * Satirlar:
+     * yuksekligi fazla buyutmadan
+     * metni belirgin sekilde buyutuyoruz.
+     */
+    .row {
+        min-height: 44px;
+        padding: 5px 12px;
+        gap: 10px;
+    }
+
+    .row-name {
+        font-size: 13px;
+        line-height: 1.12;
+        font-weight: 750;
+    }
+
+    .row-sub {
+        margin-top: 2px;
+        font-size: 9.5px;
+        line-height: 1.1;
+    }
+
+    .value {
+        font-size: 11px;
+        line-height: 1.1;
+        font-weight: 700;
+    }
+
+    .online {
+        gap: 6px;
+    }
+
+    .online-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .chevron {
+        font-size: 18px;
+    }
+
+    .version {
+        margin-top: 5px;
+        font-size: 8px;
+    }
+}
+
+
+/* MERALED SETTINGS LOGO POSITION V5 */
+@media (max-width: 600px) {
+
+    .topbar {
+        margin-top: 9px;
+    }
+
+    /*
+     * Logo aşağı gelirken Settings içeriğini
+     * gereksiz yere aşağı taşımayalım.
+     */
+    .header {
+        margin-top: 0;
+    }
+}
+
+
+/* MERALED SETTINGS SPACING V5 */
+@media (max-width: 600px) {
+
+    /*
+     * Üst alanı gerçekten aşağı indir.
+     * Önceki topbar margin denemesini ez.
+     */
+    .page {
+        padding-top: 40px;
+        padding-left: 18px;
+        padding-right: 18px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+        margin-top: 0;
+        min-height: 38px;
+    }
+
+    .back {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+    }
+
+    .logo {
+        width: 138px;
+    }
+
+    .spacer {
+        width: 38px;
+    }
+
+
+    /*
+     * Settings başlığı logoya yapışmasın.
+     */
+    .header {
+        margin-top: 12px;
+    }
+
+    .header .eyebrow {
+        font-size: 9px;
+        letter-spacing: 1.45px;
+    }
+
+    h1 {
+        margin: 5px 0 3px;
+        font-size: 26px;
+        line-height: 1.05;
+    }
+
+    .subtitle {
+        font-size: 10.5px;
+        line-height: 1.3;
+    }
+
+
+    /*
+     * Bölümler artık sıkışık görünmesin.
+     */
+    .section {
+        margin-top: 12px;
+    }
+
+    .section-title {
+        margin-bottom: 7px;
+        font-size: 9.5px;
+        letter-spacing: 1.25px;
+    }
+
+
+    /*
+     * Kartların nefes alanı.
+     */
+    .card {
+        border-radius: 16px;
+    }
+
+    .row {
+        min-height: 49px;
+        padding: 7px 13px;
+        gap: 11px;
+    }
+
+    .row-name {
+        font-size: 13px;
+        line-height: 1.15;
+        font-weight: 750;
+    }
+
+    .row-sub {
+        margin-top: 3px;
+        font-size: 9.5px;
+        line-height: 1.15;
+    }
+
+    .value {
+        font-size: 11px;
+        line-height: 1.1;
+    }
+
+    .online {
+        gap: 7px;
+    }
+
+    .online-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .chevron {
+        font-size: 18px;
+    }
+
+    .version {
+        margin-top: 10px;
+        font-size: 8px;
+    }
+}
+
 </style>
 </head>
 

@@ -578,6 +578,395 @@ input[type="range"]::-moz-range-thumb {
         font-size: 50px;
     }
 }
+
+/* MERALED MOBILE COMPACT V1 */
+@media (max-width: 600px) {
+
+    html,
+    body {
+        margin: 0;
+        overscroll-behavior-y: none;
+    }
+
+    body {
+        min-height: 100dvh;
+    }
+
+    .app {
+        width: 100%;
+        padding:
+            10px
+            14px
+            calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .brand img {
+        width: 132px;
+        max-width: 42vw;
+    }
+
+    .subtitle {
+        margin-top: 4px;
+        font-size: 8px;
+        letter-spacing: 1.55px;
+    }
+
+    .topbar-actions {
+        gap: 6px;
+    }
+
+    .settings-button {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+    }
+
+    .system-pill {
+        gap: 6px;
+        padding: 6px 9px;
+        font-size: 9px;
+    }
+
+    .mode-switch {
+        margin-bottom: 12px;
+        padding: 4px;
+        gap: 4px;
+        border-radius: 14px;
+    }
+
+    .mode-switch button {
+        padding: 10px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+    }
+
+    .section {
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+
+    .eyebrow {
+        margin-bottom: 6px;
+        font-size: 8px;
+        letter-spacing: 1.35px;
+    }
+
+    .product-card {
+        padding: 14px 16px;
+        border-radius: 16px;
+    }
+
+    .product-name {
+        font-size: 24px;
+    }
+
+    .product-sub {
+        margin-top: 4px;
+        font-size: 10px;
+    }
+
+    .metric-grid {
+        gap: 8px;
+    }
+
+    .metric {
+        min-height: 72px;
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .metric-label {
+        font-size: 8px;
+        letter-spacing: .85px;
+    }
+
+    .metric-value {
+        margin-top: 6px;
+        font-size: 22px;
+    }
+
+    .output-row {
+        margin-top: 10px;
+    }
+
+    .output-head {
+        margin-bottom: 6px;
+        font-size: 10px;
+    }
+
+    .output-track {
+        height: 6px;
+    }
+
+    /*
+     * MANUAL:
+     * büyük CCT kartını ve kontroller arasındaki
+     * dikey boşluğu azalt.
+     */
+    .manual-hero {
+        margin: 3px 0 10px;
+        padding: 12px 12px;
+        border-radius: 16px;
+    }
+
+    .manual-kicker {
+        font-size: 8px;
+    }
+
+    .manual-main-value {
+        margin-top: 4px;
+        font-size: 40px;
+        letter-spacing: -1.6px;
+    }
+
+    .manual-unit {
+        margin-top: 4px;
+        font-size: 8px;
+    }
+
+    .control-block {
+        margin-top: 12px;
+    }
+
+    .control-head {
+        margin-bottom: 7px;
+    }
+
+    .control-name {
+        font-size: 11px;
+    }
+
+    .control-value {
+        font-size: 16px;
+    }
+
+    input[type="range"] {
+        height: 7px;
+    }
+
+    .range-scale {
+        margin-top: 4px;
+        font-size: 8px;
+    }
+
+    .apply {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 13px;
+        font-size: 10px;
+    }
+
+    .error {
+        min-height: 0;
+        margin-top: 5px;
+        font-size: 9px;
+    }
+
+    .health-list {
+        gap: 6px;
+    }
+
+    .health-item {
+        gap: 5px;
+        padding: 6px 8px;
+        font-size: 9px;
+    }
+
+    .health-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    /*
+     * Mobilde footer gereksiz dikey scroll yaratmasın.
+     * Marka zaten üstte bulunuyor.
+     */
+    .footer {
+        display: none;
+    }
+}
+
+
+/* MERALED MOBILE BALANCE V2 */
+@media (max-width: 600px) {
+
+    /*
+     * Logo status bar'a yapışmasın.
+     * Boyut korunuyor, yalnızca ekranın içine alınıyor.
+     */
+    .app {
+        padding-top: 22px;
+    }
+
+    .topbar {
+        margin-bottom: 14px;
+    }
+
+    .brand img {
+        width: 142px;
+        max-width: 44vw;
+    }
+
+
+    /*
+     * AUTO ekranı V1'de gereğinden fazla sıkıştı.
+     * Manual ekranı değiştirmeden AUTO'yu
+     * ekran yüksekliğine daha dengeli yayıyoruz.
+     */
+    #auto-view .section {
+        margin-top: 16px;
+        padding-top: 16px;
+    }
+
+    #auto-view .section:first-child {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    #auto-view .eyebrow {
+        margin-bottom: 8px;
+    }
+
+    #auto-view .product-card {
+        padding: 20px 20px;
+        min-height: 94px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    #auto-view .product-name {
+        font-size: 27px;
+    }
+
+    #auto-view .product-sub {
+        margin-top: 6px;
+        font-size: 10px;
+    }
+
+    #auto-view .metric-grid {
+        gap: 10px;
+    }
+
+    #auto-view .metric {
+        min-height: 86px;
+        padding: 13px 14px;
+    }
+
+    #auto-view .metric-value {
+        margin-top: 9px;
+        font-size: 24px;
+    }
+
+    #auto-view .output-row {
+        margin-top: 14px;
+    }
+
+    #auto-view .output-head {
+        margin-bottom: 8px;
+        font-size: 10px;
+    }
+
+    #auto-view .output-track {
+        height: 7px;
+    }
+
+    /*
+     * SYSTEM HEALTH iki modda da aynı yerde,
+     * ancak aşırı alta kaçmadan biraz nefes alsın.
+     */
+    .app > .section {
+        margin-top: 16px;
+        padding-top: 14px;
+    }
+}
+
+
+/* MERALED LOGO POSITION V5 */
+@media (max-width: 600px) {
+
+    /*
+     * Logoyu status bar'dan uzaklaştır.
+     * Alt boşluğu aynı miktarda azaltarak
+     * sayfanın toplam yüksekliğini büyütme.
+     */
+    .topbar {
+        margin-top: 9px;
+        margin-bottom: 5px;
+    }
+}
+
+
+/* MERALED MANUAL FINAL FIT V1 */
+@media (max-width: 600px) {
+
+    /*
+     * Manual zaten güzel.
+     * Sadece küçük dikey taşmayı kaldırıyoruz.
+     */
+    #manual-view .section {
+        margin-top: 9px;
+        padding-top: 9px;
+    }
+
+    #manual-view .section:first-child {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    #manual-view .manual-hero {
+        margin-bottom: 8px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    #manual-view .control-block {
+        margin-top: 10px;
+    }
+
+    #manual-view .apply {
+        margin-top: 11px;
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+
+    #manual-view .error {
+        margin-top: 3px;
+    }
+
+    /*
+     * Live Feedback kartlarından birkaç px kazan.
+     */
+    #manual-view .metric {
+        min-height: 68px;
+        padding-top: 9px;
+        padding-bottom: 9px;
+    }
+
+    #manual-view .metric-value {
+        margin-top: 5px;
+    }
+
+    #manual-view .output-row {
+        margin-top: 8px;
+    }
+
+    /*
+     * Manual açıkken hemen arkasındaki
+     * System Health bölümünü biraz yaklaştır.
+     * AUTO'ya etki etmez.
+     */
+    #manual-view.active + .section {
+        margin-top: 10px;
+        padding-top: 10px;
+    }
+}
+
 </style>
 </head>
 
