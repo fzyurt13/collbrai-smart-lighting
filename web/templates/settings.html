@@ -706,6 +706,476 @@ h1 {
     }
 }
 
+
+/* MERALED_WIFI_SCAN_UI_V1 */
+
+.wifi-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(3, 8, 13, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.wifi-sheet-overlay.visible {
+    display: flex;
+}
+
+.wifi-sheet {
+    width: 100%;
+    max-width: 560px;
+    max-height: 82vh;
+    overflow: hidden;
+    background: #0d151d;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -20px 60px rgba(0,0,0,.45);
+}
+
+.wifi-sheet-handle {
+    width: 42px;
+    height: 4px;
+    margin: 10px auto 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.18);
+}
+
+.wifi-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.wifi-sheet-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #f4f7f6;
+}
+
+.wifi-sheet-subtitle {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #778693;
+}
+
+.wifi-close {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255,255,255,.06);
+    color: #cbd5dc;
+    font-size: 21px;
+    cursor: pointer;
+}
+
+.wifi-list {
+    overflow-y: auto;
+    max-height: calc(82vh - 150px);
+    padding: 10px 14px 18px;
+}
+
+.wifi-state {
+    padding: 26px 14px;
+    text-align: center;
+    color: #82919c;
+    font-size: 13px;
+}
+
+.wifi-network {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    margin-bottom: 7px;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 15px;
+    background: rgba(255,255,255,.025);
+}
+
+.wifi-icon {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(46,190,110,.10);
+    color: #45ce83;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.wifi-network-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.wifi-network-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #eaf0ed;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.wifi-network-meta {
+    margin-top: 4px;
+    color: #71818d;
+    font-size: 11px;
+}
+
+.wifi-signal {
+    flex: 0 0 auto;
+    color: #8b9aa5;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.wifi-refresh {
+    width: calc(100% - 28px);
+    margin: 0 14px 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(46,190,110,.24);
+    border-radius: 14px;
+    background: rgba(46,190,110,.08);
+    color: #55d58c;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.wifi-refresh:disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+
+/* MERALED_WIFI_VISUAL_V3 */
+
+/*
+ * Wi-Fi panelinin Android alt navigasyon
+ * çubuğunun altında kalmasını engelle.
+ */
+.wifi-sheet {
+    background: #0B1015;
+    padding-bottom: 58px;
+}
+
+.wifi-list {
+    max-height: calc(82vh - 205px);
+}
+
+
+/*
+ * Eski kare/şimşek görünümünü kaldır.
+ * Diğer MERALED durum göstergeleriyle
+ * aynı LED mantığı.
+ */
+.wifi-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+
+    padding: 0;
+
+    background: transparent;
+    border-radius: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wifi-led {
+    width: 11px;
+    height: 11px;
+
+    display: block;
+
+    border-radius: 50%;
+
+    background: #38C976;
+
+    box-shadow:
+        0 0 5px rgba(56,201,118,.75),
+        0 0 11px rgba(56,201,118,.34);
+}
+
+
+/*
+ * Bağlı ağ
+ */
+.wifi-network.connected {
+    border-color: rgba(56,201,118,.32);
+    background: rgba(56,201,118,.055);
+}
+
+.wifi-network.connected .wifi-led {
+    box-shadow:
+        0 0 6px rgba(56,201,118,.95),
+        0 0 15px rgba(56,201,118,.48);
+}
+
+
+/*
+ * Ağ bilgisi
+ */
+.wifi-network-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.wifi-connected-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 2px 7px;
+
+    border: 1px solid rgba(56,201,118,.28);
+    border-radius: 999px;
+
+    background: rgba(56,201,118,.10);
+
+    color: #38C976;
+
+    font-size: 9px;
+    line-height: 1.4;
+    font-weight: 800;
+
+    letter-spacing: .45px;
+}
+
+
+/*
+ * Sağ sinyal alanı
+ */
+.wifi-signal {
+    min-width: 68px;
+
+    text-align: right;
+
+    color: #83919B;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+/*
+ * MERALED yeşili buton
+ */
+.wifi-refresh {
+    margin-bottom: 0;
+
+    border-color: rgba(56,201,118,.30);
+
+    background: rgba(56,201,118,.09);
+
+    color: #38C976;
+}
+
+.wifi-refresh:active {
+    background: rgba(56,201,118,.16);
+}
+
+.wifi-refresh:disabled {
+    color: rgba(56,201,118,.55);
+}
+
+
+/*
+ * Mobilde biraz daha sıkı
+ */
+@media (max-width: 600px) {
+
+    .wifi-network {
+        gap: 10px;
+        padding: 13px 12px;
+    }
+
+    .wifi-network-name {
+        font-size: 14px;
+    }
+
+    .wifi-signal {
+        min-width: 64px;
+        font-size: 11px;
+    }
+}
+
+
+/* MERALED_WIFI_PASSWORD_UI_V2 */
+
+.wifi-network.selectable {
+    cursor: pointer;
+}
+
+.wifi-network.selectable:active {
+    background: rgba(56, 201, 118, .10);
+}
+
+.wifi-network.unavailable {
+    opacity: .48;
+}
+
+.wifi-network-note {
+    margin-top: 4px;
+    color: #64737D;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.wifi-password-panel {
+    display: none;
+    padding: 10px 0 0;
+}
+
+.wifi-password-panel.visible {
+    display: block;
+}
+
+.wifi-selected-network {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    margin-bottom: 16px;
+    padding: 14px;
+
+    border: 1px solid rgba(56, 201, 118, .24);
+    border-radius: 14px;
+
+    background: rgba(56, 201, 118, .055);
+}
+
+.wifi-selected-led {
+    width: 11px;
+    height: 11px;
+    flex: 0 0 11px;
+
+    border-radius: 50%;
+    background: #38C976;
+
+    box-shadow:
+        0 0 6px rgba(56, 201, 118, .85),
+        0 0 13px rgba(56, 201, 118, .35);
+}
+
+.wifi-selected-name {
+    min-width: 0;
+    flex: 1;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    color: #EEF5F1;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.wifi-password-label {
+    margin: 0 0 7px 2px;
+
+    color: #81909A;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .65px;
+}
+
+.wifi-password-input {
+    box-sizing: border-box;
+
+    width: 100%;
+    height: 48px;
+
+    padding: 0 14px;
+
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 13px;
+    outline: none;
+
+    background: #101921;
+    color: #F2F6F4;
+
+    font-size: 15px;
+}
+
+.wifi-password-input:focus {
+    border-color: rgba(56, 201, 118, .50);
+    box-shadow: 0 0 0 3px rgba(56, 201, 118, .07);
+}
+
+.wifi-test-status {
+    min-height: 34px;
+
+    margin-top: 11px;
+
+    color: #7F8D96;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.wifi-test-status.ok {
+    color: #38C976;
+}
+
+.wifi-test-status.error {
+    color: #EC6B75;
+}
+
+.wifi-password-actions {
+    display: grid;
+    grid-template-columns: .8fr 1.6fr;
+    gap: 9px;
+
+    margin-top: 10px;
+}
+
+.wifi-password-back,
+.wifi-password-test {
+    min-height: 45px;
+
+    border-radius: 13px;
+
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .3px;
+}
+
+.wifi-password-back {
+    border: 1px solid rgba(255,255,255,.08);
+
+    background: rgba(255,255,255,.04);
+    color: #92A0A9;
+}
+
+.wifi-password-test {
+    border: 1px solid rgba(56,201,118,.30);
+
+    background: rgba(56,201,118,.10);
+    color: #38C976;
+}
+
+.wifi-password-test:disabled {
+    opacity: .55;
+}
+
 </style>
 </head>
 
@@ -839,6 +1309,14 @@ h1 {
 
         <div class="card">
 
+            <div class="row action" onclick="openWifiScan()">
+                <div class="row-main">
+                    <div class="row-name">Wi-Fi Ağını Değiştir</div>
+                    <div class="row-sub">MERALED için kullanılabilir ağları görüntüle</div>
+                </div>
+
+                <div class="chevron">›</div>
+            </div>
 
             <div class="row action" onclick="runSystemCheck()">
                 <div class="row-main">
@@ -851,6 +1329,126 @@ h1 {
 
         </div>
     </section>
+
+
+
+    <!-- MERALED_WIFI_SCAN_UI_V1 -->
+    <div
+        id="wifi-sheet-overlay"
+        class="wifi-sheet-overlay"
+        onclick="wifiOverlayClick(event)"
+    >
+        <div class="wifi-sheet">
+
+            <div class="wifi-sheet-handle"></div>
+
+            <div class="wifi-sheet-header">
+
+                <div>
+                    <div class="wifi-sheet-title">
+                        Wi-Fi Ağı
+                    </div>
+
+                    <div
+                        id="wifi-sheet-subtitle"
+                        class="wifi-sheet-subtitle"
+                    >
+                        Kullanılabilir ağlar
+                    </div>
+                </div>
+
+                <button
+                    class="wifi-close"
+                    onclick="closeWifiScan()"
+                    type="button"
+                    aria-label="Kapat"
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <div
+                id="wifi-network-list"
+                class="wifi-list"
+            >
+                <div class="wifi-state">
+                    Ağlar bekleniyor...
+                </div>
+            </div>
+
+
+            <div
+                id="wifi-password-panel"
+                class="wifi-password-panel"
+            >
+
+                <div class="wifi-selected-network">
+                    <span class="wifi-selected-led"></span>
+
+                    <div
+                        id="wifi-selected-name"
+                        class="wifi-selected-name"
+                    >
+                        Wi-Fi
+                    </div>
+                </div>
+
+                <div id="wifi-password-field">
+
+                    <div class="wifi-password-label">
+                        WI-FI ŞİFRESİ
+                    </div>
+
+                    <input
+                        id="wifi-password-input"
+                        class="wifi-password-input"
+                        type="password"
+                        autocomplete="off"
+                        placeholder="Wi-Fi şifresini girin"
+                    >
+
+                </div>
+
+                <div
+                    id="wifi-test-status"
+                    class="wifi-test-status"
+                ></div>
+
+                <div class="wifi-password-actions">
+
+                    <button
+                        type="button"
+                        class="wifi-password-back"
+                        onclick="backToWifiList()"
+                    >
+                        GERİ
+                    </button>
+
+                    <button
+                        id="wifi-test-button"
+                        type="button"
+                        class="wifi-password-test"
+                        onclick="testSelectedWifi()"
+                    >
+                        BAĞLANTIYI TEST ET
+                    </button>
+
+                </div>
+
+            </div>
+
+            <button
+                id="wifi-refresh"
+                class="wifi-refresh"
+                onclick="scanWifiNetworks()"
+                type="button"
+            >
+                YENİDEN TARA
+            </button>
+
+        </div>
+    </div>
 
 
     <!-- MERALED NO CLASSIC LOGIN V1 -->
@@ -869,6 +1467,649 @@ function goBack() {
 
 function runSystemCheck() {
     window.location.href = "/setup";
+}
+
+
+
+let meraledWifiNetworks = [];
+let selectedWifiNetwork = null;
+
+function openWifiScan() {
+
+    const overlay =
+        document.getElementById(
+            "wifi-sheet-overlay"
+        );
+
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.add("visible");
+
+    scanWifiNetworks();
+}
+
+
+function closeWifiScan() {
+
+    const overlay =
+        document.getElementById(
+            "wifi-sheet-overlay"
+        );
+
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove("visible");
+}
+
+
+function wifiOverlayClick(event) {
+
+    if (
+        event.target
+        && event.target.id ===
+            "wifi-sheet-overlay"
+    ) {
+        closeWifiScan();
+    }
+}
+
+
+function wifiSignalLabel(signal) {
+
+    const value =
+        Number(signal) || 0;
+
+    if (value >= 70) {
+        return "Çok iyi";
+    }
+
+    if (value >= 50) {
+        return "İyi";
+    }
+
+    if (value >= 30) {
+        return "Orta";
+    }
+
+    return "Zayıf";
+}
+
+
+function wifiBandLabel(frequency) {
+
+    const value =
+        Number(frequency) || 0;
+
+    if (value >= 4900) {
+        return "5 GHz";
+    }
+
+    if (value >= 2300) {
+        return "2.4 GHz";
+    }
+
+    return "";
+}
+
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+
+function selectWifiNetwork(index) {
+
+    const network =
+        meraledWifiNetworks[index];
+
+    if (
+        !network
+        || network.connected
+        || !network.transition_visible
+    ) {
+        return;
+    }
+
+    selectedWifiNetwork = network;
+
+
+    const list =
+        document.getElementById(
+            "wifi-network-list"
+        );
+
+    const refresh =
+        document.getElementById(
+            "wifi-refresh"
+        );
+
+    const panel =
+        document.getElementById(
+            "wifi-password-panel"
+        );
+
+    const selectedName =
+        document.getElementById(
+            "wifi-selected-name"
+        );
+
+    const passwordField =
+        document.getElementById(
+            "wifi-password-field"
+        );
+
+    const passwordInput =
+        document.getElementById(
+            "wifi-password-input"
+        );
+
+    const status =
+        document.getElementById(
+            "wifi-test-status"
+        );
+
+
+    if (list) {
+        list.style.display = "none";
+    }
+
+    if (refresh) {
+        refresh.style.display = "none";
+    }
+
+    if (panel) {
+        panel.classList.add("visible");
+    }
+
+    if (selectedName) {
+        selectedName.textContent =
+            network.ssid;
+    }
+
+
+    const security =
+        String(
+            network.security || ""
+        ).toUpperCase();
+
+    const isOpen =
+        !security
+        || security === "OPEN"
+        || security === "--";
+
+
+    if (passwordField) {
+        passwordField.style.display =
+            isOpen ? "none" : "";
+    }
+
+    if (passwordInput) {
+
+        passwordInput.value = "";
+
+        if (!isOpen) {
+            setTimeout(
+                function() {
+                    passwordInput.focus();
+                },
+                100
+            );
+        }
+    }
+
+    if (status) {
+
+        status.className =
+            "wifi-test-status";
+
+        status.textContent =
+            "Mevcut MERALED bağlantısı "
+            + "kesilmeden yeni ağ "
+            + "doğrulanacak.";
+    }
+}
+
+
+async function backToWifiList() {
+
+    try {
+        await fetch(
+            "/api/wifi/test-cancel",
+            {
+                method: "POST",
+                cache: "no-store"
+            }
+        );
+    }
+    catch (error) {
+    }
+
+
+    selectedWifiNetwork = null;
+
+
+    const list =
+        document.getElementById(
+            "wifi-network-list"
+        );
+
+    const refresh =
+        document.getElementById(
+            "wifi-refresh"
+        );
+
+    const panel =
+        document.getElementById(
+            "wifi-password-panel"
+        );
+
+
+    if (panel) {
+        panel.classList.remove("visible");
+    }
+
+    if (list) {
+        list.style.display = "";
+    }
+
+    if (refresh) {
+        refresh.style.display = "";
+    }
+
+
+    scanWifiNetworks();
+}
+
+
+async function testSelectedWifi() {
+
+    if (!selectedWifiNetwork) {
+        return;
+    }
+
+
+    const button =
+        document.getElementById(
+            "wifi-test-button"
+        );
+
+    const status =
+        document.getElementById(
+            "wifi-test-status"
+        );
+
+    const passwordInput =
+        document.getElementById(
+            "wifi-password-input"
+        );
+
+
+    const security =
+        String(
+            selectedWifiNetwork.security
+            || ""
+        ).toUpperCase();
+
+    const isOpen =
+        !security
+        || security === "OPEN"
+        || security === "--";
+
+    const password =
+        isOpen
+        ? ""
+        : (
+            passwordInput
+            ? passwordInput.value
+            : ""
+        );
+
+
+    if (
+        !isOpen
+        && password.length < 8
+    ) {
+
+        if (status) {
+            status.className =
+                "wifi-test-status error";
+
+            status.textContent =
+                "Wi-Fi şifresi en az "
+                + "8 karakter olmalı.";
+        }
+
+        return;
+    }
+
+
+    if (button) {
+        button.disabled = true;
+        button.textContent =
+            "TEST EDİLİYOR...";
+    }
+
+    if (status) {
+        status.className =
+            "wifi-test-status";
+
+        status.textContent =
+            "Yeni Wi-Fi ağı doğrulanıyor...";
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/wifi/test-connect",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        ssid:
+                            selectedWifiNetwork.ssid,
+                        password:
+                            password
+                    })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+            || !data.ok
+        ) {
+            throw new Error(
+                data.error
+                || "Bağlantı doğrulanamadı"
+            );
+        }
+
+
+        const ip =
+            Array.isArray(
+                data.ip_addresses
+            )
+            && data.ip_addresses.length
+            ? data.ip_addresses[0]
+            : "";
+
+
+        if (status) {
+            status.className =
+                "wifi-test-status ok";
+
+            status.textContent =
+                "Bağlantı doğrulandı"
+                + (
+                    ip
+                    ? " • " + ip
+                    : ""
+                );
+        }
+
+        if (button) {
+            button.textContent =
+                "DOĞRULANDI";
+            button.disabled = true;
+        }
+
+    }
+    catch (error) {
+
+        if (status) {
+            status.className =
+                "wifi-test-status error";
+
+            status.textContent =
+                error.message
+                || "Bağlantı doğrulanamadı";
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent =
+                "TEKRAR DENE";
+        }
+    }
+}
+
+
+async function scanWifiNetworks() {
+
+    const list =
+        document.getElementById(
+            "wifi-network-list"
+        );
+
+    const subtitle =
+        document.getElementById(
+            "wifi-sheet-subtitle"
+        );
+
+    const button =
+        document.getElementById(
+            "wifi-refresh"
+        );
+
+    if (!list || !subtitle || !button) {
+        return;
+    }
+
+
+    button.disabled = true;
+    button.textContent = "TARANIYOR...";
+
+    subtitle.textContent =
+        "Kullanılabilir ağlar taranıyor";
+
+    list.innerHTML =
+        '<div class="wifi-state">'
+        + 'Ağlar taranıyor...'
+        + '</div>';
+
+
+    try {
+
+        const response = await fetch(
+            "/api/wifi/scan",
+            {
+                cache: "no-store"
+            }
+        );
+
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " + response.status
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !data.ok
+            || !Array.isArray(data.networks)
+        ) {
+            throw new Error(
+                data.error
+                || "Wi-Fi scan failed"
+            );
+        }
+
+
+        const networks =
+            data.networks;
+
+        meraledWifiNetworks =
+            networks;
+
+
+        subtitle.textContent =
+            networks.length
+            + " ağ bulundu";
+
+
+        if (networks.length === 0) {
+
+            list.innerHTML =
+                '<div class="wifi-state">'
+                + 'Kullanılabilir Wi-Fi ağı bulunamadı.'
+                + '</div>';
+
+            return;
+        }
+
+
+        list.innerHTML =
+            networks.map(
+                function(network, index) {
+
+                    const ssid =
+                        escapeHtml(
+                            network.ssid || "Wi-Fi"
+                        );
+
+                    const security =
+                        escapeHtml(
+                            network.security || "OPEN"
+                        );
+
+                    const signal =
+                        Number(
+                            network.signal
+                        ) || 0;
+
+                    const band =
+                        wifiBandLabel(
+                            network.frequency_mhz
+                        );
+
+                    const signalText =
+                        wifiSignalLabel(signal);
+
+                    const connected =
+                        Boolean(
+                            network.connected
+                        );
+
+                    const transitionVisible =
+                        Boolean(
+                            network.transition_visible
+                        );
+
+                    const selectable =
+                        transitionVisible
+                        && !connected;
+
+                    const cardClass =
+                        'wifi-network'
+                        + (
+                            connected
+                            ? ' connected'
+                            : ''
+                        )
+                        + (
+                            selectable
+                            ? ' selectable'
+                            : ''
+                        )
+                        + (
+                            !transitionVisible
+                            ? ' unavailable'
+                            : ''
+                        );
+
+                    const clickAction =
+                        selectable
+                        ? ' onclick="selectWifiNetwork('
+                          + index
+                          + ')"'
+                        : '';
+
+
+                    return (
+                        '<div class="'
+                        + cardClass
+                        + '"'
+                        + clickAction
+                        + '>'
+                        + '<div class="wifi-icon">'
+                        + '<span class="wifi-led"></span>'
+                        + '</div>'
+                        + '<div class="wifi-network-main">'
+                        + '<div class="wifi-network-name">'
+                        + ssid
+                        + '</div>'
+                        + '<div class="wifi-network-meta">'
+                        + security
+                        + (band ? ' • ' + band : '')
+                        + (
+                            connected
+                            ? '<span class="wifi-connected-badge">BAĞLI</span>'
+                            : ''
+                        )
+                        + '</div>'
+                        + (
+                            !transitionVisible
+                            ? '<div class="wifi-network-note">'
+                              + 'Geçiş radyosunda görünmüyor'
+                              + '</div>'
+                            : ''
+                        )
+                        + '</div>'
+                        + '<div class="wifi-signal">'
+                        + signalText
+                        + ' • '
+                        + signal
+                        + '%'
+                        + '</div>'
+                        + '</div>'
+                    );
+                }
+            ).join("");
+
+    }
+    catch (error) {
+
+        subtitle.textContent =
+            "Tarama başarısız";
+
+        list.innerHTML =
+            '<div class="wifi-state">'
+            + 'Wi-Fi ağları alınamadı.'
+            + '</div>';
+    }
+    finally {
+
+        button.disabled = false;
+        button.textContent =
+            "YENİDEN TARA";
+    }
 }
 
 

@@ -1,0 +1,6 @@
+[Allow MERALED NetworkManager Control]
+Identity=unix-user:collbrai
+Action=org.freedesktop.NetworkManager.network-control;org.freedesktop.NetworkManager.settings.modify.system
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
