@@ -436,6 +436,50 @@ except Exception as exc:
 client_socket = None
 client_buffer = b""
 
+# MERALED_TCP_RECOVERY_V1
+# Son başarılı istemci aktivitesini izler.
+# Jetson normalde birkaç saniyede bir komut gönderir.
+client_last_activity_ms = 0
+TCP_CLIENT_IDLE_TIMEOUT_MS = 15000
+
+
+def close_tcp_client(reason="unknown"):
+    global client_socket
+    global client_buffer
+    global client_last_activity_ms
+
+    if client_socket is not None:
+        try:
+            client_socket.close()
+        except Exception:
+            pass
+
+    client_socket = None
+    client_buffer = b""
+    client_last_activity_ms = 0
+
+    print(
+        "TCP CLIENT CLOSED reason={}".format(
+            reason
+        )
+    )
+
+
+def is_tcp_timeout_error(exc):
+    """
+    MicroPython socket timeout / would-block hatalari
+    gercek baglanti kopmasi degildir.
+    """
+    try:
+        code = exc.args[0]
+    except Exception:
+        return False
+
+    return code in (
+        11,   # EAGAIN / EWOULDBLOCK
+        110,  # ETIMEDOUT
+    )
+
 # USB seri portu bloklamadan kontrol et
 stdin_poll = select.poll()
 stdin_poll.register(
@@ -473,13 +517,9 @@ while True:
 
                 # Eski TCP baglantisini temizle.
                 if client_socket is not None:
-                    try:
-                        client_socket.close()
-                    except Exception:
-                        pass
-
-                    client_socket = None
-                    client_buffer = b""
+                    close_tcp_client(
+                        "wifi_provisioning"
+                    )
 
                 if tcp_server is not None:
                     try:
@@ -555,6 +595,7 @@ while True:
                 client_socket, client_addr = tcp_server.accept()
                 client_socket.settimeout(0.05)
                 client_buffer = b""
+                client_last_activity_ms = time.ticks_ms()
 
                 print(
                     "TCP CLIENT CONNECTED",
@@ -570,12 +611,15 @@ while True:
                 data = client_socket.recv(256)
 
                 if not data:
-                    client_socket.close()
-                    client_socket = None
-                    client_buffer = b""
-                    print("TCP CLIENT DISCONNECTED")
+                    close_tcp_client(
+                        "peer_disconnected"
+                    )
 
                 else:
+                    client_last_activity_ms = (
+                        time.ticks_ms()
+                    )
+
                     client_buffer += data
 
                     while b"\n" in client_buffer:
@@ -605,8 +649,34 @@ while True:
                                     ).encode("utf-8")
                                 )
 
-            except OSError:
-                pass
+                                client_last_activity_ms = (
+                                    time.ticks_ms()
+                                )
+
+            except OSError as exc:
+                if not is_tcp_timeout_error(exc):
+                    close_tcp_client(
+                        "socket_error_{}".format(
+                            exc
+                        )
+                    )
+
+        # Sessizce kaybolmus / yarim kalmis TCP istemcisini
+        # sonsuza kadar elde tutma.
+        if (
+            client_socket is not None
+            and client_last_activity_ms
+        ):
+            if (
+                time.ticks_diff(
+                    time.ticks_ms(),
+                    client_last_activity_ms
+                )
+                > TCP_CLIENT_IDLE_TIMEOUT_MS
+            ):
+                close_tcp_client(
+                    "idle_timeout"
+                )
 
     except Exception as exc:
         print(
