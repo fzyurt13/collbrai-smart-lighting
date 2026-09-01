@@ -39,3 +39,5 @@ data/operator_auth.json
 android/**/build/
 android/**/*.apk
 android/**/*.keystore
+esp32/device_config.json
+esp32/setup_identity.json
