@@ -1,6 +1,7 @@
 import json
 import socket
 import time
+import threading
 
 import serial
 
@@ -37,6 +38,13 @@ class ESP32Client:
         )
 
         self.serial = None
+
+        # MERALED_ESP32_RUNTIME_ENDPOINT_V1
+        #
+        # Web thread ile ana kontrol döngüsünün aynı anda
+        # ESP32 endpoint'ini kullanması sırasında host değişimini
+        # yarım TCP işleminin ortasında bırakmamak için.
+        self._wifi_lock = threading.RLock()
 
         if self.transport not in (
             "serial",
@@ -135,33 +143,38 @@ class ESP32Client:
             + "\n"
         ).encode("utf-8")
 
-        with socket.create_connection(
-            (
-                self.host,
-                self.tcp_port
-            ),
-            timeout=self.wifi_timeout
-        ) as sock:
+        with self._wifi_lock:
 
-            sock.settimeout(
-                self.wifi_timeout
-            )
+            host = self.host
+            tcp_port = self.tcp_port
 
-            sock.sendall(
-                message
-            )
+            with socket.create_connection(
+                (
+                    host,
+                    tcp_port
+                ),
+                timeout=self.wifi_timeout
+            ) as sock:
 
-            data = b""
-
-            while b"\n" not in data:
-                chunk = sock.recv(
-                    4096
+                sock.settimeout(
+                    self.wifi_timeout
                 )
 
-                if not chunk:
-                    break
+                sock.sendall(
+                    message
+                )
 
-                data += chunk
+                data = b""
+
+                while b"\n" not in data:
+                    chunk = sock.recv(
+                        4096
+                    )
+
+                    if not chunk:
+                        break
+
+                    data += chunk
 
         responses = []
 
@@ -177,6 +190,7 @@ class ESP32Client:
                 )
 
         return responses
+
 
     def _send_command(
         self,
@@ -340,6 +354,121 @@ class ESP32Client:
         raise RuntimeError(
             "No spectral response received from ESP32"
         )
+
+    def get_wifi_endpoint(self):
+
+        if self.transport != "wifi":
+            raise RuntimeError(
+                "ESP32 client is not using Wi-Fi transport"
+            )
+
+        with self._wifi_lock:
+            return {
+                "host": self.host,
+                "tcp_port": self.tcp_port,
+            }
+
+
+    def set_wifi_endpoint(
+        self,
+        host,
+        tcp_port=None
+    ):
+
+        if self.transport != "wifi":
+            raise RuntimeError(
+                "ESP32 client is not using Wi-Fi transport"
+            )
+
+        host = str(host).strip()
+
+        if not host:
+            raise ValueError(
+                "ESP32 Wi-Fi host cannot be empty"
+            )
+
+        with self._wifi_lock:
+
+            self.host = host
+
+            if tcp_port is not None:
+                self.tcp_port = int(
+                    tcp_port
+                )
+
+            return {
+                "host": self.host,
+                "tcp_port": self.tcp_port,
+            }
+
+
+    def device_info(self):
+
+        responses = self._send_command(
+            "DEVICE_INFO"
+        )
+
+        for line in responses:
+
+            if not line.startswith(
+                "DEVICE_INFO "
+            ):
+                continue
+
+            values = {}
+
+            for part in line.split()[1:]:
+
+                if "=" not in part:
+                    continue
+
+                key, value = part.split(
+                    "=",
+                    1
+                )
+
+                values[key] = value
+
+
+            device_id = values.get(
+                "ID"
+            )
+
+            if not device_id:
+                continue
+
+
+            port_value = values.get(
+                "PORT"
+            )
+
+            try:
+                reported_port = int(
+                    port_value
+                )
+            except (TypeError, ValueError):
+                reported_port = None
+
+
+            return {
+                "id": device_id,
+                "provisioned": (
+                    values.get(
+                        "PROVISIONED"
+                    ) == "1"
+                ),
+                "source": values.get(
+                    "SOURCE"
+                ),
+                "tcp_port": reported_port,
+                "responses": responses,
+            }
+
+
+        raise RuntimeError(
+            "No DEVICE_INFO response received from ESP32"
+        )
+
 
     def health(self):
         responses = self._send_command("HEALTH")

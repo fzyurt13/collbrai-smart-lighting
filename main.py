@@ -38,6 +38,13 @@ from ai.product_presence_manager import ProductPresenceManager
 
 from communication.mock_esp32 import MockESP32
 from communication.esp32_client import ESP32Client
+from communication.esp32_runtime import (
+    register_esp32_client,
+    clear_esp32_client,
+)
+from communication.esp32_endpoint_store import (
+    load_esp32_endpoint,
+)
 from sensors.spectral_ratio_estimator import SpectralRatioEstimator
 from sensors.brightness_estimator import BrightnessEstimator
 from control.spectral_feedback_controller import SpectralFeedbackController
@@ -158,6 +165,28 @@ def create_esp32_client_from_args(args):
     transport = args.esp32_transport or ESP32_TRANSPORT
     host = args.esp32_host or ESP32_HOST
     tcp_port = args.esp32_tcp_port or ESP32_TCP_PORT
+
+    # MERALED_ESP32_PERSISTED_ENDPOINT_V1
+    #
+    # Explicit CLI host her zaman en yüksek önceliğe sahiptir.
+    # Aksi halde son doğrulanmış ESP32 endpoint'i kullanılır.
+    if (
+        transport == "wifi"
+        and args.esp32_host is None
+    ):
+        persisted_endpoint = (
+            load_esp32_endpoint()
+        )
+
+        if persisted_endpoint:
+            host = persisted_endpoint[
+                "host"
+            ]
+
+            if args.esp32_tcp_port is None:
+                tcp_port = persisted_endpoint[
+                    "tcp_port"
+                ]
 
     if transport == "wifi":
         if not host:
@@ -1482,6 +1511,14 @@ def run_continuous_real(args):
 
     esp32 = create_esp32_client_from_args(
         args
+    )
+
+    # MERALED_ESP32_RUNTIME_REGISTRY_V1
+    #
+    # Web thread ve continuous kontrol döngüsü aynı
+    # çalışan ESP32Client nesnesine erişir.
+    register_esp32_client(
+        esp32
     )
 
     camera = None
@@ -2879,6 +2916,13 @@ def run_continuous_real(args):
 
         except Exception as exc:
             print("FINAL STANDBY ERROR:", exc)
+
+        try:
+            clear_esp32_client(
+                esp32
+            )
+        except Exception:
+            pass
 
         try:
             esp32.close()

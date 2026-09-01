@@ -34,6 +34,7 @@ import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebChromeClient;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -63,6 +64,13 @@ public class MainActivity extends Activity {
     private WifiManager wifiManager;
 
     private WebView webView;
+
+    // MERALED_WEB_BLE_BRIDGE_CORE_V1
+    private boolean webWifiProvisioningActive =
+        false;
+
+    private boolean webBleAutoConnectStarted =
+        false;
 
     // MERALED_NSD_DISCOVERY_V17
     private NsdManager nsdManager;
@@ -3205,6 +3213,402 @@ public class MainActivity extends Activity {
     }
 
 
+
+    /*
+     * MERALED_WEB_BLE_BRIDGE_CORE_V1
+     *
+     * Ana WebView ekranindan mevcut native
+     * BLE provisioning akisina kontrollu giris.
+     *
+     * Wi-Fi sifresi ve kurulum PIN'i loglanmaz.
+     */
+    private void ensureWebBleUiReferences() {
+
+        if (statusText == null) {
+            statusText =
+                new TextView(this);
+        }
+
+        if (deviceText == null) {
+            deviceText =
+                new TextView(this);
+        }
+
+        if (scanButton == null) {
+            scanButton =
+                new Button(this);
+        }
+
+        if (connectButton == null) {
+            connectButton =
+                new Button(this);
+        }
+
+        if (setupPinInput == null) {
+            setupPinInput =
+                new EditText(this);
+        }
+
+        if (wifiSsidInput == null) {
+            wifiSsidInput =
+                new EditText(this);
+        }
+
+        if (wifiPasswordInput == null) {
+            wifiPasswordInput =
+                new EditText(this);
+        }
+
+        if (wifiConnectButton == null) {
+            wifiConnectButton =
+                new Button(this);
+        }
+    }
+
+
+    private void notifyWebBleState(
+        final String state,
+        final String message,
+        final String ip
+    ) {
+
+        if (webView == null) {
+            return;
+        }
+
+
+        final String js =
+            "window.onMeraledEsp32ProvisioningStatus"
+            + " && "
+            + "window.onMeraledEsp32ProvisioningStatus("
+            + org.json.JSONObject.quote(
+                state == null ? "" : state
+            )
+            + ","
+            + org.json.JSONObject.quote(
+                message == null ? "" : message
+            )
+            + ","
+            + org.json.JSONObject.quote(
+                ip == null ? "" : ip
+            )
+            + ");";
+
+
+        webView.post(
+            new Runnable() {
+                @Override
+                public void run() {
+
+                    if (webView == null) {
+                        return;
+                    }
+
+                    try {
+                        webView.evaluateJavascript(
+                            js,
+                            null
+                        );
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        );
+    }
+
+
+
+    // MERALED_WEB_BLE_CALLBACKS_V2
+    private void finishWebEsp32ProvisioningSuccess(
+        String ip
+    ) {
+
+        if (!webWifiProvisioningActive) {
+            return;
+        }
+
+        webWifiProvisioningActive =
+            false;
+
+        webBleAutoConnectStarted =
+            false;
+
+        wifiStatusPollingActive =
+            false;
+
+        pendingSetupPin =
+            null;
+
+        if (setupPinInput != null) {
+            setupPinInput.setText("");
+        }
+
+        if (wifiPasswordInput != null) {
+            wifiPasswordInput.setText("");
+        }
+
+        notifyWebBleState(
+            "connected",
+            "ESP32 yeni Wi-Fi ağına bağlandı.",
+            ip == null ? "" : ip
+        );
+    }
+
+
+    private void finishWebEsp32ProvisioningFailure(
+        String message
+    ) {
+
+        if (!webWifiProvisioningActive) {
+            return;
+        }
+
+        webWifiProvisioningActive =
+            false;
+
+        webBleAutoConnectStarted =
+            false;
+
+        wifiStatusPollingActive =
+            false;
+
+        pendingSetupPin =
+            null;
+
+        pendingWifiPassword =
+            null;
+
+        pendingWifiSsid =
+            null;
+
+        if (setupPinInput != null) {
+            setupPinInput.setText("");
+        }
+
+        if (wifiPasswordInput != null) {
+            wifiPasswordInput.setText("");
+        }
+
+        notifyWebBleState(
+            "failed",
+            message == null
+                ? "ESP32 işlemi başarısız."
+                : message,
+            ""
+        );
+    }
+
+
+    private void beginWebEsp32Provisioning(
+        String ssid,
+        String password,
+        String setupPin
+    ) {
+
+        ensureWebBleUiReferences();
+
+
+        ssid =
+            ssid == null
+            ? ""
+            : ssid.trim();
+
+        password =
+            password == null
+            ? ""
+            : password;
+
+        setupPin =
+            setupPin == null
+            ? ""
+            : setupPin.trim();
+
+
+        if (ssid.isEmpty()) {
+
+            notifyWebBleState(
+                "failed",
+                "Wi-Fi ağ adı boş.",
+                ""
+            );
+
+            return;
+        }
+
+
+        if (
+            !setupPin.matches(
+                "[0-9]{8}"
+            )
+        ) {
+
+            notifyWebBleState(
+                "failed",
+                "8 haneli kurulum PIN'ini girin.",
+                ""
+            );
+
+            return;
+        }
+
+
+        /*
+         * WebView doğrudan açılmışsa BluetoothAdapter
+         * referansını burada da garanti et.
+         */
+        if (bluetoothAdapter == null) {
+
+            BluetoothManager manager =
+                (BluetoothManager)
+                getSystemService(
+                    Context.BLUETOOTH_SERVICE
+                );
+
+            if (manager != null) {
+                bluetoothAdapter =
+                    manager.getAdapter();
+            }
+        }
+
+
+        if (!hasBlePermissions()) {
+
+            notifyWebBleState(
+                "failed",
+                "Bluetooth izni gerekli.",
+                ""
+            );
+
+            requestBlePermissions();
+
+            return;
+        }
+
+
+        if (
+            bluetoothAdapter == null
+            || !bluetoothAdapter.isEnabled()
+        ) {
+
+            notifyWebBleState(
+                "failed",
+                "Bluetooth kapalı.",
+                ""
+            );
+
+            return;
+        }
+
+
+        /*
+         * Eski BLE/GATT oturumu varsa temizle.
+         */
+        if (bluetoothGatt != null) {
+
+            try {
+                bluetoothGatt.disconnect();
+            } catch (Exception ignored) {
+            }
+
+            try {
+                bluetoothGatt.close();
+            } catch (Exception ignored) {
+            }
+
+            bluetoothGatt =
+                null;
+        }
+
+
+        authCharacteristic =
+            null;
+
+        sessionCharacteristic =
+            null;
+
+        wifiSsidCharacteristic =
+            null;
+
+        wifiPasswordCharacteristic =
+            null;
+
+        wifiCommandCharacteristic =
+            null;
+
+        wifiStatusCharacteristic =
+            null;
+
+
+        setupSessionActive =
+            false;
+
+        setupWifiConnected =
+            false;
+
+        wifiStatusPollingActive =
+            false;
+
+        wifiStatusPollAttempts =
+            0;
+
+
+        setupPinInput.setText(
+            setupPin
+        );
+
+        wifiSsidInput.setText(
+            ssid
+        );
+
+        wifiPasswordInput.setText(
+            password
+        );
+
+
+        webWifiProvisioningActive =
+            true;
+
+        webBleAutoConnectStarted =
+            false;
+
+
+        notifyWebBleState(
+            "scanning",
+            "MERALED kontrol ünitesi aranıyor...",
+            ""
+        );
+
+
+        startBleScan();
+    }
+
+
+    public final class MeraledNativeBridge {
+
+        @JavascriptInterface
+        public void provisionEsp32(
+            final String ssid,
+            final String password,
+            final String setupPin
+        ) {
+
+            runOnUiThread(
+                new Runnable() {
+                    @Override
+                    public void run() {
+
+                        beginWebEsp32Provisioning(
+                            ssid,
+                            password,
+                            setupPin
+                        );
+                    }
+                }
+            );
+        }
+    }
+
+
     // MERALED_DIRECT_WEBVIEW_V14
     // MERALED_DIRECT_WEBVIEW_V14
     private void showMainWebApp() {
@@ -3232,6 +3636,12 @@ public class MainActivity extends Activity {
 
         webView.setBackgroundColor(
             backgroundColor
+        );
+
+
+        webView.addJavascriptInterface(
+            new MeraledNativeBridge(),
+            "MeraledNative"
         );
 
 
@@ -3946,6 +4356,10 @@ public class MainActivity extends Activity {
                         deviceText.setText(
                             "MERALED cihazı bulunamadı."
                         );
+
+                        finishWebEsp32ProvisioningFailure(
+                            "MERALED kontrol ünitesi bulunamadı."
+                        );
                     }
                 }
             },
@@ -4630,6 +5044,10 @@ public class MainActivity extends Activity {
 
             updateCompleteSummary();
 
+            finishWebEsp32ProvisioningSuccess(
+                setupWifiIp
+            );
+
             if (wifiNextButton != null) {
 
                 wifiNextButton.setEnabled(
@@ -4681,6 +5099,10 @@ public class MainActivity extends Activity {
             statusText.setText(
                 "Wi-Fi bağlantısı kurulamadı. "
                 + "Ağ adı ve şifreyi kontrol edin."
+            );
+
+            finishWebEsp32ProvisioningFailure(
+                "ESP32 Wi-Fi bağlantısı kurulamadı."
             );
 
             if (wifiNextButton != null) {
@@ -5166,6 +5588,19 @@ public class MainActivity extends Activity {
                                 statusText.setText(
                                     "Wi-Fi bağlantısı için hazır."
                                 );
+
+                                if (
+                                    webWifiProvisioningActive
+                                ) {
+
+                                    notifyWebBleState(
+                                        "sending",
+                                        "Wi-Fi bilgileri ESP32'ye gönderiliyor...",
+                                        ""
+                                    );
+
+                                    startWifiProvisioning();
+                                }
                             }
                         }
                     );
@@ -5442,6 +5877,10 @@ public class MainActivity extends Activity {
                                         "Kurulum PIN'i hatalı."
                                     );
 
+                                    finishWebEsp32ProvisioningFailure(
+                                        "Kurulum PIN'i hatalı."
+                                    );
+
                                     stylePrimaryButton(
                                         connectButton,
                                         true
@@ -5490,6 +5929,16 @@ public class MainActivity extends Activity {
                                         true;
 
                                     if (
+                                        webWifiProvisioningActive
+                                    ) {
+                                        notifyWebBleState(
+                                            "session",
+                                            "ESP32 kurulum oturumu doğrulandı.",
+                                            ""
+                                        );
+                                    }
+
+                                    if (
                                         bleNextButton != null
                                     ) {
                                         bleNextButton.setEnabled(
@@ -5516,6 +5965,10 @@ public class MainActivity extends Activity {
                                         + "kimlik doğrulama gerekli."
                                     );
 
+                                    finishWebEsp32ProvisioningFailure(
+                                        "ESP32 kurulum oturumu açılamadı."
+                                    );
+
                                 } else if (
                                     "SESSION_DENIED_BUSY"
                                         .equals(response)
@@ -5523,6 +5976,10 @@ public class MainActivity extends Activity {
 
                                     statusText.setText(
                                         "Kurulum oturumu meşgul."
+                                    );
+
+                                    finishWebEsp32ProvisioningFailure(
+                                        "ESP32 kurulum oturumu meşgul."
                                     );
 
                                 } else {
@@ -5621,6 +6078,10 @@ public class MainActivity extends Activity {
 
                                     updateCompleteSummary();
 
+                                    finishWebEsp32ProvisioningSuccess(
+                                        setupWifiIp
+                                    );
+
                                     if (
                                         wifiNextButton != null
                                     ) {
@@ -5675,6 +6136,10 @@ public class MainActivity extends Activity {
                                     statusText.setText(
                                         "Wi-Fi bağlantısı kurulamadı. "
                                         + "Ağ adı ve şifreyi kontrol edin."
+                                    );
+
+                                    finishWebEsp32ProvisioningFailure(
+                                        "ESP32 Wi-Fi bağlantısı kurulamadı."
                                     );
 
                                     setupWifiConnected =
@@ -5899,6 +6364,32 @@ public class MainActivity extends Activity {
                         connectButton,
                         true
                     );
+
+
+                    if (
+                        webWifiProvisioningActive
+                        && !webBleAutoConnectStarted
+                    ) {
+
+                        webBleAutoConnectStarted =
+                            true;
+
+                        notifyWebBleState(
+                            "connecting",
+                            "ESP32 Bluetooth bağlantısı kuruluyor...",
+                            ""
+                        );
+
+
+                        runOnUiThread(
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    connectToFoundDevice();
+                                }
+                            }
+                        );
+                    }
                 }
             }
 

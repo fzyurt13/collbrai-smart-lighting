@@ -2,6 +2,13 @@ from flask import Flask, jsonify, render_template, request, redirect
 import subprocess
 import os
 import tempfile
+import ipaddress
+
+from communication.esp32_client import ESP32Client
+from communication.esp32_runtime import get_esp32_client
+from communication.esp32_endpoint_store import (
+    save_esp32_endpoint,
+)
 
 try:
     from web.system_state import system_state
@@ -882,6 +889,408 @@ def api_wifi_test_connect():
                 or ""
             ).strip(),
         }), 500
+
+
+
+# MERALED_ESP32_RUNTIME_VERIFY_API_V1
+
+def _get_transition_ipv4_interfaces():
+
+    result = subprocess.run(
+        [
+            "nmcli",
+            "-g",
+            "IP4.ADDRESS",
+            "device",
+            "show",
+            WIFI_TRANSITION_INTERFACE,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+
+    interfaces = []
+
+    for line in result.stdout.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            interface = ipaddress.ip_interface(
+                line
+            )
+        except ValueError:
+            continue
+
+        if (
+            interface.version == 4
+        ):
+            interfaces.append(
+                interface
+            )
+
+    return interfaces
+
+
+def _get_transition_connection_name():
+
+    result = subprocess.run(
+        [
+            "nmcli",
+            "-g",
+            "GENERAL.CONNECTION",
+            "device",
+            "show",
+            WIFI_TRANSITION_INTERFACE,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+
+    return result.stdout.strip()
+
+
+@app.route(
+    "/api/wifi/esp32-verify",
+    methods=["POST"]
+)
+def api_wifi_esp32_verify():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+
+    candidate_raw = str(
+        data.get(
+            "ip",
+            ""
+        )
+    ).strip()
+
+
+    try:
+        candidate_ip = ipaddress.ip_address(
+            candidate_raw
+        )
+    except ValueError:
+        return jsonify({
+            "ok": False,
+            "error": "Geçersiz ESP32 IP adresi",
+        }), 400
+
+
+    if candidate_ip.version != 4:
+        return jsonify({
+            "ok": False,
+            "error": "ESP32 için IPv4 adresi gerekli",
+        }), 400
+
+
+    try:
+        active_connection = (
+            _get_transition_connection_name()
+        )
+
+        transition_interfaces = (
+            _get_transition_ipv4_interfaces()
+        )
+
+    except Exception:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Servis Wi-Fi bağlantısı "
+                "doğrulanamadı"
+            ),
+        }), 500
+
+
+    if (
+        active_connection
+        != WIFI_TRANSITION_PROFILE
+    ):
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Doğrulanmış geçiş Wi-Fi "
+                "bağlantısı aktif değil"
+            ),
+        }), 409
+
+
+    if not transition_interfaces:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Geçiş Wi-Fi arayüzünde "
+                "IPv4 adresi yok"
+            ),
+        }), 409
+
+
+    candidate_on_transition_network = any(
+        candidate_ip in interface.network
+        for interface
+        in transition_interfaces
+    )
+
+
+    if not candidate_on_transition_network:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "ESP32 yeni servis Wi-Fi "
+                "ağında görünmüyor"
+            ),
+        }), 409
+
+
+    if any(
+        candidate_ip == interface.ip
+        for interface
+        in transition_interfaces
+    ):
+        return jsonify({
+            "ok": False,
+            "error": (
+                "ESP32 IP adresi Jetson "
+                "adresinden farklı olmalı"
+            ),
+        }), 400
+
+
+    runtime_client = (
+        get_esp32_client()
+    )
+
+
+    if runtime_client is None:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Çalışan ESP32 istemcisi "
+                "henüz hazır değil"
+            ),
+        }), 503
+
+
+    if (
+        getattr(
+            runtime_client,
+            "transport",
+            None
+        )
+        != "wifi"
+    ):
+        return jsonify({
+            "ok": False,
+            "error": (
+                "ESP32 çalışma bağlantısı "
+                "Wi-Fi modunda değil"
+            ),
+        }), 409
+
+
+    try:
+        current_endpoint = (
+            runtime_client
+            .get_wifi_endpoint()
+        )
+
+        tcp_port = int(
+            current_endpoint[
+                "tcp_port"
+            ]
+        )
+
+    except Exception:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Mevcut ESP32 endpoint "
+                "bilgisi alınamadı"
+            ),
+        }), 500
+
+
+    candidate_client = ESP32Client(
+        transport="wifi",
+        host=str(candidate_ip),
+        tcp_port=tcp_port,
+        wifi_timeout=3.0,
+    )
+
+
+    try:
+        device_info = (
+            candidate_client
+            .device_info()
+        )
+
+        candidate_health = (
+            candidate_client
+            .health()
+        )
+
+    except Exception:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Yeni ağdaki ESP32 "
+                "doğrulanamadı"
+            ),
+        }), 502
+
+
+    device_id = str(
+        device_info.get(
+            "id",
+            ""
+        )
+    )
+
+
+    if not device_id.startswith(
+        "MERALED-"
+    ):
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Yeni IP adresindeki cihaz "
+                "MERALED kontrol ünitesi değil"
+            ),
+        }), 409
+
+
+    if not candidate_health.get(
+        "connected",
+        False
+    ):
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Yeni ağdaki ESP32 "
+                "HEALTH doğrulamasını geçemedi"
+            ),
+        }), 502
+
+
+    previous_endpoint = dict(
+        current_endpoint
+    )
+
+
+    try:
+        runtime_client.set_wifi_endpoint(
+            str(candidate_ip),
+            tcp_port=tcp_port,
+        )
+
+        switched_health = (
+            runtime_client.health()
+        )
+
+        if not switched_health.get(
+            "connected",
+            False
+        ):
+            raise RuntimeError(
+                "Runtime HEALTH failed"
+            )
+
+    except Exception:
+
+        try:
+            runtime_client.set_wifi_endpoint(
+                previous_endpoint["host"],
+                tcp_port=previous_endpoint[
+                    "tcp_port"
+                ],
+            )
+        except Exception:
+            pass
+
+        return jsonify({
+            "ok": False,
+            "error": (
+                "ESP32 runtime bağlantısı "
+                "yeni IP'ye geçirilemedi"
+            ),
+        }), 502
+
+
+    system_state.update_health(
+        esp32=True,
+        as7343=bool(
+            switched_health.get(
+                "as7343",
+                False
+            )
+        ),
+    )
+
+
+    # MERALED_ESP32_ENDPOINT_PERSIST_V1
+    #
+    # Yalnızca DEVICE_INFO + HEALTH + runtime HEALTH
+    # doğrulamalarının tamamı geçtikten sonra kalıcılaştır.
+    try:
+        save_esp32_endpoint(
+            str(candidate_ip),
+            tcp_port,
+            device_id=device_id,
+        )
+
+    except Exception:
+        return jsonify({
+            "ok": False,
+            "error": (
+                "ESP32 bağlantısı doğrulandı "
+                "ancak kalıcı endpoint "
+                "kaydedilemedi"
+            ),
+        }), 500
+
+
+    return jsonify({
+        "ok": True,
+        "status": "runtime_switched",
+        "device_id": device_id,
+        "ip": str(candidate_ip),
+        "tcp_port": tcp_port,
+        "health": {
+            "esp32": bool(
+                switched_health.get(
+                    "esp32",
+                    False
+                )
+            ),
+            "pca9685": bool(
+                switched_health.get(
+                    "pca9685",
+                    False
+                )
+            ),
+            "as7343": bool(
+                switched_health.get(
+                    "as7343",
+                    False
+                )
+            ),
+        },
+        "message": (
+            "ESP32 yeni Wi-Fi ağında "
+            "doğrulandı"
+        ),
+    })
 
 
 @app.route(

@@ -1176,6 +1176,112 @@ h1 {
     opacity: .55;
 }
 
+
+
+/* MERALED_ESP32_WIFI_TRANSFER_UI_V1 */
+
+.wifi-esp32-transfer-panel {
+    display: none;
+
+    margin-top: 14px;
+    padding: 14px;
+
+    border: 1px solid rgba(56, 201, 118, .20);
+    border-radius: 14px;
+
+    background: rgba(56, 201, 118, .045);
+}
+
+.wifi-esp32-transfer-panel.visible {
+    display: block;
+}
+
+.wifi-esp32-transfer-title {
+    color: #EEF5F1;
+
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .25px;
+}
+
+.wifi-esp32-transfer-description {
+    margin-top: 5px;
+
+    color: #81909A;
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.wifi-setup-pin-input {
+    box-sizing: border-box;
+
+    width: 100%;
+    height: 46px;
+
+    margin-top: 12px;
+    padding: 0 14px;
+
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 13px;
+
+    outline: none;
+
+    background: #101921;
+    color: #F2F6F4;
+
+    font-size: 15px;
+    letter-spacing: 3px;
+}
+
+.wifi-setup-pin-input:focus {
+    border-color: rgba(56,201,118,.50);
+
+    box-shadow:
+        0 0 0 3px rgba(56,201,118,.07);
+}
+
+.wifi-esp32-transfer-status {
+    min-height: 18px;
+
+    margin-top: 10px;
+
+    color: #81909A;
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.wifi-esp32-transfer-status.ok {
+    color: #38C976;
+}
+
+.wifi-esp32-transfer-status.error {
+    color: #EC6B75;
+}
+
+.wifi-esp32-transfer-button {
+    width: 100%;
+    min-height: 45px;
+
+    margin-top: 10px;
+
+    border: 1px solid rgba(56,201,118,.30);
+    border-radius: 13px;
+
+    background: rgba(56,201,118,.10);
+    color: #38C976;
+
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .25px;
+}
+
+.wifi-esp32-transfer-button:disabled {
+    opacity: .55;
+}
+
+
 </style>
 </head>
 
@@ -1698,6 +1804,10 @@ async function backToWifiList() {
 
     selectedWifiNetwork = null;
 
+    resetEsp32TransferPanel(
+        true
+    );
+
 
     const list =
         document.getElementById(
@@ -1875,6 +1985,8 @@ async function testSelectedWifi() {
             button.disabled = true;
         }
 
+        showEsp32TransferPanel();
+
     }
     catch (error) {
 
@@ -1894,6 +2006,600 @@ async function testSelectedWifi() {
         }
     }
 }
+
+
+
+
+let verifiedEsp32Ip = "";
+
+
+function ensureEsp32TransferPanel() {
+
+    const host =
+        document.getElementById(
+            "wifi-password-panel"
+        );
+
+    if (!host) {
+        return null;
+    }
+
+
+    let panel =
+        document.getElementById(
+            "wifi-esp32-transfer-panel"
+        );
+
+    if (panel) {
+        return panel;
+    }
+
+
+    panel =
+        document.createElement(
+            "div"
+        );
+
+    panel.id =
+        "wifi-esp32-transfer-panel";
+
+    panel.className =
+        "wifi-esp32-transfer-panel";
+
+
+    panel.innerHTML =
+        '<div class="wifi-esp32-transfer-title">'
+        + 'ESP32 AĞ GEÇİŞİ'
+        + '</div>'
+
+        + '<div class="wifi-esp32-transfer-description">'
+        + 'Yeni Wi-Fi ağı Jetson üzerinde doğrulandı. '
+        + 'ESP32 kontrol ünitesini de aynı ağa taşıyın.'
+        + '</div>'
+
+        + '<input '
+        + 'id="wifi-setup-pin-input" '
+        + 'class="wifi-setup-pin-input" '
+        + 'type="password" '
+        + 'inputmode="numeric" '
+        + 'maxlength="8" '
+        + 'autocomplete="off" '
+        + 'placeholder="8 haneli kurulum PIN\'i">'
+
+        + '<div '
+        + 'id="wifi-esp32-transfer-status" '
+        + 'class="wifi-esp32-transfer-status">'
+        + '</div>'
+
+        + '<button '
+        + 'id="wifi-esp32-transfer-button" '
+        + 'class="wifi-esp32-transfer-button" '
+        + 'type="button" '
+        + 'onclick="startEsp32Provisioning()">'
+        + 'ESP32\'Yİ YENİ AĞA TAŞI'
+        + '</button>';
+
+
+    host.appendChild(
+        panel
+    );
+
+    return panel;
+}
+
+
+function resetEsp32TransferPanel(hidePanel) {
+
+    const panel =
+        ensureEsp32TransferPanel();
+
+    if (!panel) {
+        return;
+    }
+
+
+    const pin =
+        document.getElementById(
+            "wifi-setup-pin-input"
+        );
+
+    const status =
+        document.getElementById(
+            "wifi-esp32-transfer-status"
+        );
+
+    const button =
+        document.getElementById(
+            "wifi-esp32-transfer-button"
+        );
+
+
+    verifiedEsp32Ip = "";
+
+
+    if (pin) {
+        pin.value = "";
+    }
+
+
+    if (status) {
+        status.className =
+            "wifi-esp32-transfer-status";
+
+        status.textContent =
+            "Kurulum PIN'i yalnızca ESP32 BLE doğrulaması için kullanılacak.";
+    }
+
+
+    if (button) {
+        button.disabled = false;
+
+        button.textContent =
+            "ESP32'Yİ YENİ AĞA TAŞI";
+    }
+
+
+    if (hidePanel) {
+        panel.classList.remove(
+            "visible"
+        );
+    }
+}
+
+
+function showEsp32TransferPanel() {
+
+    const panel =
+        ensureEsp32TransferPanel();
+
+    if (!panel) {
+        return;
+    }
+
+
+    resetEsp32TransferPanel(
+        false
+    );
+
+
+    panel.classList.add(
+        "visible"
+    );
+}
+
+
+function startEsp32Provisioning() {
+
+    if (!selectedWifiNetwork) {
+        return;
+    }
+
+
+    const pinInput =
+        document.getElementById(
+            "wifi-setup-pin-input"
+        );
+
+    const passwordInput =
+        document.getElementById(
+            "wifi-password-input"
+        );
+
+    const status =
+        document.getElementById(
+            "wifi-esp32-transfer-status"
+        );
+
+    const button =
+        document.getElementById(
+            "wifi-esp32-transfer-button"
+        );
+
+
+    const pin =
+        pinInput
+        ? pinInput.value.trim()
+        : "";
+
+
+    const password =
+        passwordInput
+        ? passwordInput.value
+        : "";
+
+
+    if (!/^[0-9]{8}$/.test(pin)) {
+
+        if (status) {
+            status.className =
+                "wifi-esp32-transfer-status error";
+
+            status.textContent =
+                "8 haneli kurulum PIN'ini girin.";
+        }
+
+        return;
+    }
+
+
+    if (
+        !window.MeraledNative
+        || typeof window.MeraledNative
+            .provisionEsp32
+            !== "function"
+    ) {
+
+        if (status) {
+            status.className =
+                "wifi-esp32-transfer-status error";
+
+            status.textContent =
+                "Android BLE köprüsü hazır değil. "
+                + "MERALED uygulamasını güncelleyin.";
+        }
+
+        return;
+    }
+
+
+    if (button) {
+        button.disabled = true;
+
+        button.textContent =
+            "ESP32 HAZIRLANIYOR...";
+    }
+
+
+    if (status) {
+        status.className =
+            "wifi-esp32-transfer-status";
+
+        status.textContent =
+            "ESP32 kontrol ünitesi aranıyor...";
+    }
+
+
+    try {
+
+        window.MeraledNative
+            .provisionEsp32(
+                selectedWifiNetwork.ssid,
+                password,
+                pin
+            );
+
+
+        /*
+         * PIN Java tarafina gecti.
+         * Web DOM'unda tutmaya devam etme.
+         */
+        if (pinInput) {
+            pinInput.value = "";
+        }
+
+    }
+    catch (error) {
+
+        if (status) {
+            status.className =
+                "wifi-esp32-transfer-status error";
+
+            status.textContent =
+                "ESP32 BLE işlemi başlatılamadı.";
+        }
+
+
+        if (button) {
+            button.disabled = false;
+
+            button.textContent =
+                "TEKRAR DENE";
+        }
+    }
+}
+
+
+// MERALED_ESP32_JETSON_VERIFY_V1
+async function verifyEsp32OnJetson(
+    ip,
+    status,
+    button
+) {
+
+    let lastError =
+        "ESP32 Jetson tarafından doğrulanamadı.";
+
+
+    for (
+        let attempt = 1;
+        attempt <= 5;
+        attempt += 1
+    ) {
+
+        if (status) {
+            status.className =
+                "wifi-esp32-transfer-status";
+
+            status.textContent =
+                "ESP32 yeni ağda Jetson tarafından "
+                + "doğrulanıyor... "
+                + "("
+                + attempt
+                + "/5)";
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/wifi/esp32-verify",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            ip: ip
+                        })
+                    }
+                );
+
+
+            let result = {};
+
+            try {
+                result =
+                    await response.json();
+            }
+            catch (error) {
+                result = {};
+            }
+
+
+            if (
+                response.ok
+                && result.ok
+            ) {
+
+                verifiedEsp32Ip =
+                    result.ip || ip;
+
+
+                if (status) {
+                    status.className =
+                        "wifi-esp32-transfer-status ok";
+
+                    status.textContent =
+                        "ESP32 yeni ağa başarıyla taşındı"
+                        + (
+                            verifiedEsp32Ip
+                            ? " • " + verifiedEsp32Ip
+                            : ""
+                        );
+                }
+
+
+                if (button) {
+                    button.disabled = true;
+
+                    button.textContent =
+                        "ESP32 YENİ AĞDA";
+                }
+
+
+                const passwordInput =
+                    document.getElementById(
+                        "wifi-password-input"
+                    );
+
+                if (passwordInput) {
+                    passwordInput.value = "";
+                }
+
+
+                return true;
+            }
+
+
+            lastError =
+                result.error
+                || "ESP32 Jetson tarafından doğrulanamadı.";
+
+
+            /*
+             * 400/409 bir bekleme problemi değildir.
+             * Yanlış IP/ağ gibi mantıksal hata vardır.
+             */
+            if (
+                response.status === 400
+                || response.status === 409
+            ) {
+                break;
+            }
+
+        }
+        catch (error) {
+
+            lastError =
+                "Jetson ile ESP32 doğrulaması yapılamadı.";
+        }
+
+
+        if (attempt < 5) {
+
+            await new Promise(
+                function(resolve) {
+                    setTimeout(
+                        resolve,
+                        1500
+                    );
+                }
+            );
+        }
+    }
+
+
+    verifiedEsp32Ip = "";
+
+
+    if (status) {
+        status.className =
+            "wifi-esp32-transfer-status error";
+
+        status.textContent =
+            lastError;
+    }
+
+
+    if (button) {
+        button.disabled = false;
+
+        button.textContent =
+            "TEKRAR DENE";
+    }
+
+
+    return false;
+}
+
+
+window.onMeraledEsp32ProvisioningStatus =
+function(state, message, ip) {
+
+    const status =
+        document.getElementById(
+            "wifi-esp32-transfer-status"
+        );
+
+    const button =
+        document.getElementById(
+            "wifi-esp32-transfer-button"
+        );
+
+
+    if (status) {
+
+        status.className =
+            "wifi-esp32-transfer-status";
+
+
+        if (state === "failed") {
+            status.classList.add(
+                "error"
+            );
+        }
+
+
+        status.textContent =
+            message
+            + (
+                ip
+                ? " • " + ip
+                : ""
+            );
+    }
+
+
+    if (!button) {
+        return;
+    }
+
+
+    if (state === "connected") {
+
+        verifiedEsp32Ip = "";
+
+
+        if (!ip) {
+
+            if (status) {
+                status.className =
+                    "wifi-esp32-transfer-status error";
+
+                status.textContent =
+                    "ESP32 yeni IP adresini bildirmedi.";
+            }
+
+
+            button.disabled = false;
+
+            button.textContent =
+                "TEKRAR DENE";
+
+            return;
+        }
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "JETSON DOĞRULUYOR...";
+
+
+        if (status) {
+            status.className =
+                "wifi-esp32-transfer-status";
+
+            status.textContent =
+                "ESP32 yeni ağda doğrulanıyor...";
+        }
+
+
+        verifyEsp32OnJetson(
+            ip,
+            status,
+            button
+        );
+
+
+        return;
+    }
+
+
+    if (state === "failed") {
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "TEKRAR DENE";
+
+        return;
+    }
+
+
+    button.disabled =
+        true;
+
+
+    if (state === "scanning") {
+
+        button.textContent =
+            "ESP32 ARANIYOR...";
+
+    }
+    else if (state === "connecting") {
+
+        button.textContent =
+            "BLE BAĞLANIYOR...";
+
+    }
+    else if (state === "session") {
+
+        button.textContent =
+            "OTURUM DOĞRULANDI...";
+
+    }
+    else if (state === "sending") {
+
+        button.textContent =
+            "WI-FI AKTARILIYOR...";
+    }
+};
 
 
 async function scanWifiNetworks() {
