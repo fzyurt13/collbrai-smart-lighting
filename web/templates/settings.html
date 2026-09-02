@@ -1681,7 +1681,7 @@ function selectWifiNetwork(index) {
 
     if (
         !network
-        || network.connected
+        || network.transition_connected
         || !network.transition_visible
     ) {
         return;
@@ -2728,9 +2728,14 @@ async function scanWifiNetworks() {
                             network.transition_visible
                         );
 
+                    const transitionConnected =
+                        Boolean(
+                            network.transition_connected
+                        );
+
                     const selectable =
                         transitionVisible
-                        && !connected;
+                        && !transitionConnected;
 
                     const cardClass =
                         'wifi-network'

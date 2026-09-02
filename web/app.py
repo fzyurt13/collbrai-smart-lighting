@@ -282,6 +282,12 @@ def api_wifi_scan():
                 == WIFI_TRANSITION_INTERFACE
             )
 
+            transition_connected = (
+                connected
+                and interface
+                == WIFI_TRANSITION_INTERFACE
+            )
+
             network = {
                 "ssid": ssid,
                 "bssid": bssid,
@@ -298,6 +304,9 @@ def api_wifi_scan():
                 "source_interface": interface,
                 "transition_visible": (
                     transition_visible
+                ),
+                "transition_connected": (
+                    transition_connected
                 ),
                 "transition_signal": (
                     signal_value
@@ -321,6 +330,16 @@ def api_wifi_scan():
                 previous[
                     "transition_visible"
                 ] = True
+
+                previous[
+                    "transition_connected"
+                ] = bool(
+                    transition_connected
+                    or previous.get(
+                        "transition_connected",
+                        False
+                    )
+                )
 
                 old_transition_signal = (
                     previous.get(
@@ -368,6 +387,16 @@ def api_wifi_scan():
                         transition_visible
                         or previous.get(
                             "transition_visible",
+                            False
+                        )
+                    )
+
+                    network[
+                        "transition_connected"
+                    ] = bool(
+                        transition_connected
+                        or previous.get(
+                            "transition_connected",
                             False
                         )
                     )
